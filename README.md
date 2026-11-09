@@ -28,6 +28,9 @@ Das System arbeitet vollautomatisch im Hintergrund:
 * **100 % Combat-Lockdown- & Secret-Value-Safe:** Speziell für die Forever/Midnight-Engine (Build 16001) angepasst – keine Lua-Fehler im Kampf.
 * **100 % ToS-konform:** Liest ausschließlich einen 234×1 Pixel großen optischen Telemetrie-Streifen am oberen linken Bildschirmrand (`0,0`) aus und sendet pro physischem Tastendruck exakt einen einzelnen Hardware-Keystroke (1-Click = 1-Action).
 
+  ![WoWDeck Actionbar](imgs/actionbar.png)
+  ![WoWDeck Stream deck menu](imgs/Streamdeckmenu.png)
+  ![WoWDeck stream deck overview](imgs/streamdeckoverview.png)
 ---
 
 ## Installationsanleitung (Schritt für Schritt)
