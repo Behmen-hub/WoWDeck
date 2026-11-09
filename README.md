@@ -24,6 +24,7 @@ Das System arbeitet vollautomatisch im Hintergrund:
   * **Index 1–96:** Aktionsleisten 1 bis 8 (inkl. automatischem Paging bei Haltungs-/Gestaltwechsel auf Leiste 1)
   * **Index 97–106:** Haltungs-/Gestaltleiste (Stance Bar 1–10)
   * **Index 107–116:** Begleiterleiste (Pet Bar 1–10)
+  * Die Aktionsleisten müssen im Spiel nicht sichtbar sein!
 * **Originalgetreue Optik & Smooth Radial Cooldown:** Flüssiger, halbtransparenter Cooldown-Sweep im Uhrzeigersinn mit rein weißen Sekunden-Zahlen, Out-of-Range- und Out-of-Mana-Indikatoren.
 * **100 % Combat-Lockdown- & Secret-Value-Safe:** Speziell für die Forever/Midnight-Engine (Build 16001) angepasst – keine Lua-Fehler im Kampf.
 * **100 % ToS-konform:** Liest ausschließlich einen 234×1 Pixel großen optischen Telemetrie-Streifen am oberen linken Bildschirmrand (`0,0`) aus und sendet pro physischem Tastendruck exakt einen einzelnen Hardware-Keystroke (1-Click = 1-Action).
