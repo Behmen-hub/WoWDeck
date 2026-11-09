@@ -1,0 +1,44 @@
+{
+	"$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+	"Name": "WoWDeck",
+	"Version": "1.1.0.0",
+	"Author": "Behmen",
+	"Description": "Bidirectional World of Warcraft Forever integration for Elgato Stream Deck via optical telemetry and zero-collision dynamic bindings for 116 slots (Action Bars 1-8, Stance Bar, Pet Bar).",
+	"Category": "WoWDeck",
+	"CategoryIcon": "imgs/plugin/category-icon",
+	"CodePath": "bin/plugin.js",
+	"Icon": "imgs/plugin/marketplace",
+	"UUID": "com.behmen.wowdeck",
+	"SDKVersion": 2,
+	"Software": {
+		"MinimumVersion": "6.5"
+	},
+	"OS": [
+		{
+			"Platform": "windows",
+			"MinimumVersion": "10"
+		}
+	],
+	"Nodejs": {
+		"Version": "20",
+		"Debug": "enabled"
+	},
+	"Actions": [
+		{
+			"Name": "WoW Action Slot",
+			"UUID": "com.behmen.wowdeck.slot",
+			"Icon": "imgs/actions/slot/icon",
+			"Tooltip": "Displays live spell icon, cooldown, mana/range status, and stacks for all 116 WoW Slots (Action Bars 1-8, Stance Bar 1-10, Pet Bar 1-10) and triggers them with zero-collision dynamic bindings.",
+			"PropertyInspectorPath": "ui/slot-action.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/slot/key",
+					"TitleAlignment": "middle"
+				}
+			]
+		}
+	]
+}

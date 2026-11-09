@@ -1,0 +1,24 @@
+{
+  "name": "wowdeck-streamdeck-plugin",
+  "version": "1.1.0",
+  "description": "Bidirectional World of Warcraft Forever integration for Elgato Stream Deck (116 Slots)",
+  "type": "module",
+  "author": "Behmen",
+  "license": "MIT",
+  "scripts": {
+    "build:helper": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"Stop-Process -Name 'wowdeck-helper' -Force -ErrorAction SilentlyContinue; Start-Sleep -Milliseconds 150; if (Test-Path 'com.behmen.wowdeck.sdPlugin\\bin\\wowdeck-helper.exe') { Remove-Item 'com.behmen.wowdeck.sdPlugin\\bin\\wowdeck-helper.old.exe' -Force -ErrorAction SilentlyContinue; Rename-Item 'com.behmen.wowdeck.sdPlugin\\bin\\wowdeck-helper.exe' 'wowdeck-helper.old.exe' -ErrorAction SilentlyContinue }; & 'C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe' /nologo /optimize+ /target:exe /out:com.behmen.wowdeck.sdPlugin\\bin\\wowdeck-helper.exe src\\native\\Win32Helper.cs; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; Remove-Item 'com.behmen.wowdeck.sdPlugin\\bin\\wowdeck-helper.old.exe' -Force -ErrorAction SilentlyContinue; exit 0\"",
+    "build:js": "esbuild src/plugin.ts --bundle --platform=node --target=node20 --format=esm --banner:js=\"import { createRequire } from 'module'; const require = createRequire(import.meta.url);\" --outfile=com.behmen.wowdeck.sdPlugin/bin/plugin.js",
+    "build": "npm run build:helper && tsc --noEmit && npm run build:js",
+    "test": "vitest run",
+    "validate": "streamdeck validate com.behmen.wowdeck.sdPlugin"
+  },
+  "dependencies": {
+    "@elgato/streamdeck": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

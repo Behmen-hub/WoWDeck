@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,minimal-ui,viewport-fit=cover" />
+	<title>WoWDeck Action Slot</title>
+	<style>
+		:root {
+			--bg-color: #2d2d2d;
+			--card-bg: #232323;
+			--border-color: #3d3d3d;
+			--text-primary: #d8d8d8;
+			--text-muted: #969696;
+			--accent-gold: #f8b700;
+		}
+		* {
+			box-sizing: border-box;
+		}
+		body {
+			margin: 0;
+			padding: 12px 14px;
+			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+			font-size: 12px;
+			color: var(--text-primary);
+			background-color: var(--bg-color);
+			user-select: none;
+		}
+		.sdpi-wrapper {
+			display: flex;
+			flex-direction: column;
+			gap: 10px;
+		}
+		.sdpi-item {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+		}
+		.sdpi-item-label {
+			width: 95px;
+			flex-shrink: 0;
+			text-align: right;
+			color: var(--text-muted);
+			font-weight: 500;
+		}
+		.sdpi-item-value {
+			flex: 1;
+		}
+		select {
+			width: 100%;
+			padding: 6px 8px;
+			background-color: #3b3b3b;
+			color: #ffffff;
+			border: 1px solid #505050;
+			border-radius: 4px;
+			font-size: 12px;
+			outline: none;
+		}
+		select:focus {
+			border-color: var(--accent-gold);
+		}
+		.info-card {
+			background-color: var(--card-bg);
+			border: 1px solid var(--border-color);
+			border-left: 3px solid var(--accent-gold);
+			border-radius: 4px;
+			padding: 10px 12px;
+			line-height: 1.45;
+			margin-top: 2px;
+		}
+		.info-title {
+			font-weight: 600;
+			color: var(--accent-gold);
+			margin-bottom: 4px;
+		}
+		.info-row {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			gap: 8px;
+			color: var(--text-muted);
+			font-size: 11px;
+			margin-top: 3px;
+		}
+		.badge {
+			font-family: Consolas, monospace;
+			color: #e2e8f0;
+			background: #333842;
+			padding: 1px 5px;
+			border-radius: 3px;
+			text-align: right;
+		}
+	</style>
+</head>
+<body>
+	<div class="sdpi-wrapper">
+		<div class="sdpi-item">
+			<div class="sdpi-item-label">Bar / Type</div>
+			<div class="sdpi-item-value">
+				<select id="categorySelect" aria-label="Category Selection"></select>
+			</div>
+		</div>
+
+		<div class="sdpi-item">
+			<div class="sdpi-item-label">Button / Slot</div>
+			<div class="sdpi-item-value">
+				<select id="buttonSelect" aria-label="Slot Selection"></select>
+			</div>
+		</div>
+
+		<div class="info-card">
+			<div class="info-title" id="barHintTitle">Action Bar 1 – Button 1</div>
+			<div class="info-row">
+				<span>Stream Deck Index:</span>
+				<span class="badge" id="globalSlotPreview">Index 1 / 116</span>
+			</div>
+			<div class="info-row">
+				<span>WoW Action Slot / Target:</span>
+				<span class="badge" id="wowTargetPreview">WoW Slot 1 (ActionButton1)</span>
+			</div>
+			<div class="info-row">
+				<span>Zero-Config Keybinding:</span>
+				<span class="badge" id="bindingPreview">Dynamic (Zero-Collision, active: CTRL-SHIFT-1)</span>
+			</div>
+			<div style="margin-top: 8px; color: var(--text-muted); font-size: 11px;">
+				No manual keybinding required in WoW! The <strong>WoWDeckBridge</strong> addon automatically links the 8 action bars, stance bar &amp; pet bar (116 slots) in the background.
+			</div>
+		</div>
+	</div>
+
+	<script>
+		const CATEGORIES = [
+			{ id: "bar1", group: "Action Bars (Index 1–96)", label: "Action Bar 1 (Index 1-12)", shortLabel: "Action Bar 1", startSlot: 1, count: 12, wowBaseSlot: 1, blizzPrefix: "ActionButton" },
+			{ id: "bar2", group: "Action Bars (Index 1–96)", label: "Action Bar 2 (Index 13-24)", shortLabel: "Action Bar 2", startSlot: 13, count: 12, wowBaseSlot: 61, blizzPrefix: "MultiBarBottomLeftButton" },
+			{ id: "bar3", group: "Action Bars (Index 1–96)", label: "Action Bar 3 (Index 25-36)", shortLabel: "Action Bar 3", startSlot: 25, count: 12, wowBaseSlot: 49, blizzPrefix: "MultiBarBottomRightButton" },
+			{ id: "bar4", group: "Action Bars (Index 1–96)", label: "Action Bar 4 (Index 37-48)", shortLabel: "Action Bar 4", startSlot: 37, count: 12, wowBaseSlot: 25, blizzPrefix: "MultiBarRightButton" },
+			{ id: "bar5", group: "Action Bars (Index 1–96)", label: "Action Bar 5 (Index 49-60)", shortLabel: "Action Bar 5", startSlot: 49, count: 12, wowBaseSlot: 37, blizzPrefix: "MultiBarLeftButton" },
+			{ id: "bar6", group: "Action Bars (Index 1–96)", label: "Action Bar 6 (Index 61-72)", shortLabel: "Action Bar 6", startSlot: 61, count: 12, wowBaseSlot: 145, blizzPrefix: "MultiBar5Button" },
+			{ id: "bar7", group: "Action Bars (Index 1–96)", label: "Action Bar 7 (Index 73-84)", shortLabel: "Action Bar 7", startSlot: 73, count: 12, wowBaseSlot: 157, blizzPrefix: "MultiBar6Button" },
+			{ id: "bar8", group: "Action Bars (Index 1–96)", label: "Action Bar 8 (Index 85-96)", shortLabel: "Action Bar 8", startSlot: 85, count: 12, wowBaseSlot: 169, blizzPrefix: "MultiBar7Button" },
+			{ id: "stance", group: "Special Bars (Index 97–116)", label: "Stance Bar (Index 97-106)", shortLabel: "Stance Bar", startSlot: 97, count: 10, wowBaseSlot: null, blizzPrefix: "StanceButton" },
+			{ id: "pet", group: "Special Bars (Index 97–116)", label: "Pet Bar (Index 107-116)", shortLabel: "Pet Bar", startSlot: 107, count: 10, wowBaseSlot: null, blizzPrefix: "PetActionButton" }
+		];
+
+		const BASE_KEYS_41 = [
+			"1", "2", "3", "4", "5", "6", "7", "8", "9",
+			"NUMPADMULTIPLY", "NUMPADPLUS", "NUMPADMINUS", "NUMPADDIVIDE",
+			"INSERT", "DELETE", "HOME", "END", "PAGEUP", "PAGEDOWN",
+			"BACKSPACE",
+			"UP", "DOWN", "LEFT", "RIGHT",
+			"B", "C", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "T", "U", "V", "X"
+		];
+
+		const NUMPAD_DIGITS_10 = [
+			"NUMPAD0", "NUMPAD1", "NUMPAD2", "NUMPAD3", "NUMPAD4",
+			"NUMPAD5", "NUMPAD6", "NUMPAD7", "NUMPAD8", "NUMPAD9"
+		];
+
+		const CANDIDATE_KEY_POOL = [];
+		for (const k of BASE_KEYS_41) CANDIDATE_KEY_POOL.push("CTRL-SHIFT-" + k); // 1..41
+		for (const k of BASE_KEYS_41) CANDIDATE_KEY_POOL.push("ALT-SHIFT-" + k);  // 42..82
+		for (const k of BASE_KEYS_41) CANDIDATE_KEY_POOL.push("CTRL-" + k);       // 83..123
+		for (const k of BASE_KEYS_41) CANDIDATE_KEY_POOL.push("ALT-" + k);        // 124..164
+		for (const k of NUMPAD_DIGITS_10) CANDIDATE_KEY_POOL.push("CTRL-" + k);   // 165..174
+
+		function resolvePoolIndexToKeyCombo(poolIndex) {
+			const idx = Math.max(1, Math.min(174, Number(poolIndex) || 1));
+			return CANDIDATE_KEY_POOL[idx - 1];
+		}
+
+		// Live state received from the Stream Deck plugin via telemetry Blue channel
+		let livePoolBySlot = {};
+		let liveComboBySlot = {};
+
+		function getComboForSlot(slot) {
+			const s = Math.max(1, Math.min(116, Number(slot) || 1));
+			const slotKey = String(s);
+			const liveCombo = liveComboBySlot[slotKey] || (livePoolBySlot[slotKey] ? resolvePoolIndexToKeyCombo(livePoolBySlot[slotKey]) : null);
+			const activeKey = liveCombo || resolvePoolIndexToKeyCombo(s);
+			return "Dynamic (Zero-Collision, active: " + activeKey + ")";
+		}
+
+		const categorySelect = document.getElementById("categorySelect");
+		const buttonSelect = document.getElementById("buttonSelect");
+		const barHintTitle = document.getElementById("barHintTitle");
+		const globalSlotPreview = document.getElementById("globalSlotPreview");
+		const wowTargetPreview = document.getElementById("wowTargetPreview");
+		const bindingPreview = document.getElementById("bindingPreview");
+
+		const groupsMap = new Map();
+		for (const cat of CATEGORIES) {
+			if (!groupsMap.has(cat.group)) {
+				const og = document.createElement("optgroup");
+				og.label = cat.group;
+				groupsMap.set(cat.group, og);
+				categorySelect.appendChild(og);
+			}
+			const opt = document.createElement("option");
+			opt.value = cat.id;
+			opt.textContent = cat.label;
+			groupsMap.get(cat.group).appendChild(opt);
+		}
+
+		function findCategoryBySlot(slot) {
+			const s = Math.max(1, Math.min(116, Number(slot) || 1));
+			return CATEGORIES.find(c => s >= c.startSlot && s < c.startSlot + c.count) || CATEGORIES[0];
+		}
+
+		function findCategoryById(id) {
+			return CATEGORIES.find(c => c.id === id) || CATEGORIES[0];
+		}
+
+		function populateButtonsForCategory(cat, selectedOffset) {
+			buttonSelect.innerHTML = "";
+			const maxOffset = cat.count;
+			const clampedOffset = Math.max(1, Math.min(maxOffset, Number(selectedOffset) || 1));
+
+			for (let i = 1; i <= maxOffset; i++) {
+				const globalSlot = cat.startSlot + (i - 1);
+				const opt = document.createElement("option");
+				opt.value = String(i);
+				opt.textContent = `Button ${i} (${cat.shortLabel} – Index ${globalSlot})`;
+				buttonSelect.appendChild(opt);
+			}
+			buttonSelect.value = String(clampedOffset);
+		}
+
+		function setUIFromGlobalSlot(slot) {
+			const s = Math.max(1, Math.min(116, Number(slot) || 1));
+			const cat = findCategoryBySlot(s);
+			const buttonIdx = (s - cat.startSlot) + 1;
+
+			categorySelect.value = cat.id;
+			populateButtonsForCategory(cat, buttonIdx);
+			updateInfoCard(cat, buttonIdx, s);
+		}
+
+		function updateInfoCard(cat, buttonIdx, globalSlot) {
+			barHintTitle.textContent = `${cat.shortLabel} – Button ${buttonIdx}`;
+			globalSlotPreview.textContent = `Index ${globalSlot} / 116`;
+			if (cat.wowBaseSlot !== null) {
+				const wowSlot = cat.wowBaseSlot + (buttonIdx - 1);
+				wowTargetPreview.textContent = `WoW Slot ${wowSlot} (${cat.blizzPrefix}${buttonIdx})`;
+			} else {
+				wowTargetPreview.textContent = `${cat.blizzPrefix}${buttonIdx} (Slot ${buttonIdx})`;
+			}
+			bindingPreview.textContent = getComboForSlot(globalSlot);
+		}
+
+		let websocket = null;
+		let piUUID = null;
+		let actionUUID = "com.behmen.wowdeck.slot";
+		let currentSettings = { slot: 1 };
+
+		function requestLiveBindingFromPlugin(slot) {
+			if (websocket && websocket.readyState === WebSocket.OPEN) {
+				websocket.send(JSON.stringify({
+					action: actionUUID,
+					event: "sendToPlugin",
+					context: piUUID,
+					payload: {
+						event: "requestActiveKeyBinding",
+						slot: slot
+					}
+				}));
+			}
+		}
+
+		function saveCurrentSelection() {
+			const cat = findCategoryById(categorySelect.value);
+			const buttonIdx = Math.max(1, Math.min(cat.count, Number.parseInt(buttonSelect.value, 10) || 1));
+			const globalSlot = cat.startSlot + (buttonIdx - 1);
+
+			currentSettings = {
+				...currentSettings,
+				slot: globalSlot,
+				category: cat.id,
+				buttonIndex: buttonIdx
+			};
+
+			updateInfoCard(cat, buttonIdx, globalSlot);
+
+			if (websocket && websocket.readyState === WebSocket.OPEN) {
+				websocket.send(JSON.stringify({
+					event: "setSettings",
+					context: piUUID,
+					payload: currentSettings
+				}));
+				requestLiveBindingFromPlugin(globalSlot);
+			}
+		}
+
+		categorySelect.addEventListener("change", function () {
+			const cat = findCategoryById(categorySelect.value);
+			const prevIdx = Number.parseInt(buttonSelect.value, 10) || 1;
+			populateButtonsForCategory(cat, Math.min(prevIdx, cat.count));
+			saveCurrentSelection();
+		});
+
+		buttonSelect.addEventListener("change", saveCurrentSelection);
+
+		function connectElgatoStreamDeckSocket(inPort, inPropertyInspectorUUID, inRegisterEvent, inInfo, inActionInfo) {
+			piUUID = inPropertyInspectorUUID;
+			try {
+				const parsed = JSON.parse(inActionInfo);
+				if (parsed && parsed.action) {
+					actionUUID = parsed.action;
+				}
+				currentSettings = (parsed && parsed.payload && parsed.payload.settings) || {};
+			} catch {
+				currentSettings = { slot: 1 };
+			}
+
+			const initialSlot = Number.parseInt(String(currentSettings.slot || 1), 10) || 1;
+			setUIFromGlobalSlot(initialSlot);
+
+			websocket = new WebSocket("ws://127.0.0.1:" + inPort);
+
+			websocket.onopen = function () {
+				websocket.send(JSON.stringify({
+					event: inRegisterEvent,
+					uuid: inPropertyInspectorUUID
+				}));
+				if (!currentSettings.slot) {
+					saveCurrentSelection();
+				} else {
+					requestLiveBindingFromPlugin(initialSlot);
+				}
+			};
+
+			websocket.onmessage = function (evt) {
+				try {
+					const msg = JSON.parse(evt.data);
+					if (msg.event === "didReceiveSettings" && msg.payload && msg.payload.settings) {
+						currentSettings = msg.payload.settings;
+						const slotVal = Number.parseInt(String(currentSettings.slot || 1), 10) || 1;
+						setUIFromGlobalSlot(slotVal);
+					} else if (msg.event === "sendToPropertyInspector" && msg.payload) {
+						const p = msg.payload;
+						if (p.poolBySlot && typeof p.poolBySlot === "object") {
+							livePoolBySlot = { ...livePoolBySlot, ...p.poolBySlot };
+						}
+						if (p.comboBySlot && typeof p.comboBySlot === "object") {
+							liveComboBySlot = { ...liveComboBySlot, ...p.comboBySlot };
+						}
+						if (p.slot && p.keyPoolIndex) {
+							livePoolBySlot[String(p.slot)] = p.keyPoolIndex;
+						}
+						if (p.slot && p.activeKeyCombo) {
+							liveComboBySlot[String(p.slot)] = p.activeKeyCombo;
+						}
+						const cat = findCategoryById(categorySelect.value);
+						const buttonIdx = Math.max(1, Math.min(cat.count, Number.parseInt(buttonSelect.value, 10) || 1));
+						const globalSlot = cat.startSlot + (buttonIdx - 1);
+						updateInfoCard(cat, buttonIdx, globalSlot);
+					}
+				} catch {
+					// Ignore malformed messages
+				}
+			};
+		}
+
+		setUIFromGlobalSlot(1);
+	</script>
+</body>
+</html>
