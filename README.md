@@ -1,5 +1,3 @@
-# WoWDeck
-
 # WoWDeck (Stream Deck Plugin + WoW Addon)
 **Author:** Behmen
 
