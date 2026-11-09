@@ -5,6 +5,13 @@
 
 *Aktuell unterstützte Versionen: **WoW: Forever (Build 16001)** (weitere Versionen folgen).*
 
+## Wie funktioniert das? (Das Prinzip)
+Das System arbeitet vollautomatisch im Hintergrund:
+1. Das **WoW-Addon** spiegelt den Zustand deiner 116 Aktionsleisten (Slots, Cooldowns, Reichweite) über einen winzigen, unsichtbaren 234×1-Pixel-Streifen in der oberen linken Bildschirmecke.
+2. Das **Stream Deck Plugin** liest diesen Datenstreifen in Echtzeit aus und visualisiert alles butterweich auf deinen Tasten – inklusive radialem Cooldown-Sweep.
+3. **Null Konfiguration:** Du musst im Spiel keine umständlichen Makros schreiben oder Tasten manuell zuweisen. Das Addon sucht sich beim Login automatisch freie Tasten aus einem sicheren Pool heraus. Du ziehst die Aktion im Stream Deck nur auf die Taste und bist sofort spielbereit.
+
+
 > **⚠️ WICHTIG:** Dieses System besteht aus **zwei Komponenten**, die beide installiert sein müssen:
 > 1. **Elgato Stream Deck Plugin** (`com.behmen.wowdeck.streamDeckPlugin`) – **[Hier unter GitHub Releases herunterladen](https://github.com/Behmen-hub/WoWDeck/releases/latest)**
 > 2. **WoW Ingame-Addon** (`WoWDeckBridgeForever`) – **[Auf CurseForge herunterladen](https://www.curseforge.com/wow/addons/wowdeckbridge)** *(oder ebenfalls in den [GitHub Releases](https://github.com/Behmen-hub/WoWDeck/releases/latest))*
