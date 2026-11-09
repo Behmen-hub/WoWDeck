@@ -3,7 +3,9 @@
 # WoWDeck (Stream Deck Plugin + WoW Addon)
 **Author:** Behmen
 
-**WoWDeck Forever** verbindet **World of Warcraft (Classic Forever / Build 16001)** in Echtzeit mit deinem **Elgato Stream Deck**. Es überträgt deine Aktionsleisten, Icons, Cooldowns (inkl. originalem Radial-Sweep), Reichweiten- und Mana-Status sowie Stapelzahlen ohne manuelle Tastenkonfiguration direkt auf die Tasten deines Stream Decks.
+**WoWDeck** verbindet **World of Warcraft** in Echtzeit mit deinem **Elgato Stream Deck**. Es überträgt deine Aktionsleisten, Icons, Cooldowns (inkl. originalem Radial-Sweep), Reichweiten- und Mana-Status sowie Stapelzahlen ohne manuelle Tastenkonfiguration direkt auf die Tasten deines Stream Decks.
+
+*Aktuell unterstützte Versionen: **WoW: Forever (Build 16001)** (weitere Versionen folgen).*
 
 > **⚠️ WICHTIG:** Dieses System besteht aus **zwei Komponenten**, die beide installiert sein müssen:
 > 1. **Elgato Stream Deck Plugin** (`com.behmen.wowdeck.streamDeckPlugin`) – **[Hier unter GitHub Releases herunterladen]([DEIN-GITHUB-LINK]/releases/latest)**
@@ -18,7 +20,7 @@
   * **Index 97–106:** Haltungs-/Gestaltleiste (Stance Bar 1–10)
   * **Index 107–116:** Begleiterleiste (Pet Bar 1–10)
 * **Originalgetreue Optik & Smooth Radial Cooldown:** Flüssiger, halbtransparenter Cooldown-Sweep im Uhrzeigersinn mit rein weißen Sekunden-Zahlen, Out-of-Range- und Out-of-Mana-Indikatoren.
-* **100 % Combat-Lockdown- & Secret-Value-Safe:** Speziell für die Forever/Midnight-Engine (Build 16001) entwickelt – keine Lua-Fehler im Kampf.
+* **100 % Combat-Lockdown- & Secret-Value-Safe:** Speziell für die Forever/Midnight-Engine (Build 16001) angepasst – keine Lua-Fehler im Kampf.
 * **100 % ToS-konform:** Liest ausschließlich einen 234×1 Pixel großen optischen Telemetrie-Streifen am oberen linken Bildschirmrand (`0,0`) aus und sendet pro physischem Tastendruck exakt einen einzelnen Hardware-Keystroke (1-Click = 1-Action).
 
 ---
@@ -31,7 +33,7 @@
 1. Lade das Addon über die **[CurseForge App]([DEIN-CURSEFORGE-LINK])** oder als `WoWDeckBridgeForever.zip` aus den **[GitHub Releases]([DEIN-GITHUB-LINK]/releases/latest)** herunter.
 2. Entpacke den Ordner `WoWDeckBridgeForever` in dein WoW-Verzeichnis:
    `...\World of Warcraft\_forever_\Interface\AddOns\WoWDeckBridgeForever`
-3. Stelle sicher, dass WoW im **Fenstermodus (Maximiert) / Borderless Windowed** läuft und die obere linke Ecke (`0,0`) nicht durch Overlays (Discord, GeForce Experience, FPS-Counter) verdeckt wird.
+3. Das Spiel funktioniert sowohl im **Vollbildmodus** als auch im **Fenstermodus (Maximiert)**. Stelle lediglich sicher, dass die obere linke Ecke (`0,0`) nicht durch externe Overlays (Discord, GeForce Experience, FPS-Counter) verdeckt wird.
 
 ### Schritt 2: Stream Deck Plugin installieren (`com.behmen.wowdeck.streamDeckPlugin`)
 1. Lade die Datei **`com.behmen.wowdeck.streamDeckPlugin`** aus den **[GitHub Releases]([DEIN-GITHUB-LINK]/releases/latest)** herunter.
@@ -58,9 +60,9 @@ Das Stream Deck Plugin nutzt im Hintergrund einen leichtgewichtigen, nativen Win
 
 # English Summary & Installation
 
-**WoWDeck Forever** by **Behmen** connects **World of Warcraft (Classic Forever / Build 16001)** with your **Elgato Stream Deck**. It provides live action bar icons, smooth radial cooldown sweeps, mana/range indicators, and automatic zero-collision keybinding allocation across 116 slots (Action Bars 1–8, Stance Bar, Pet Bar).
+**WoWDeck** by **Behmen** connects **World of Warcraft** with your **Elgato Stream Deck**. It provides live action bar icons, smooth radial cooldown sweeps, mana/range indicators, and automatic zero-collision keybinding allocation across 116 slots (Action Bars 1–8, Stance Bar, Pet Bar).
 
 ### Installation (Both components are required!)
-1. **WoW Addon (`WoWDeckBridgeForever`):** Download via **[CurseForge]([DEIN-CURSEFORGE-LINK])** or **[GitHub Releases]([DEIN-GITHUB-LINK]/releases/latest)** and extract to `_forever_\Interface\AddOns\WoWDeckBridgeForever`.
+1. **WoW Addon (`WoWDeckBridgeForever`):** Download via **[CurseForge]([DEIN-CURSEFORGE-LINK])** or **[GitHub Releases]([DEIN-GITHUB-LINK]/releases/latest)** and extract to `_forever_\Interface\AddOns\WoWDeckBridgeForever`. Works in both Fullscreen and Windowed mode (just ensure no third-party overlays cover the top-left `0,0` corner).
 2. **Stream Deck Plugin (`com.behmen.wowdeck.streamDeckPlugin`):** Download from **[GitHub Releases]([DEIN-GITHUB-LINK]/releases/latest)** (do not download the raw source repository) and double-click to install into the Elgato Stream Deck software.
 3. **Note on Windows SmartScreen:** The plugin uses a lightweight C# GDI screen-reader and keystroke helper. Because it is not commercially code-signed, Windows SmartScreen may prompt a warning on first launch. The entire source code (`src/`) is publicly available in this repository.
