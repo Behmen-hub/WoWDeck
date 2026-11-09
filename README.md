@@ -31,7 +31,7 @@ Das System arbeitet vollautomatisch im Hintergrund:
   ![WoWDeck Actionbar](imgs/actionbar.png)
   ![WoWDeck Stream deck menu](imgs/Streamdeckmenu.png)
   ![WoWDeck stream deck overview](imgs/streamdeckoverview.png)
-  ![WoWDeck stream deck overview2](imgs/overview)
+  
 ---
 
 ## Installationsanleitung (Schritt für Schritt)
