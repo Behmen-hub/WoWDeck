@@ -17702,7 +17702,7 @@ var IconResolverAndRenderer = class {
         layers.push(sweepPath);
       }
       if (state.cooldown > 0) {
-        const cdText = String(state.cooldown);
+        const cdText = state.cooldown >= 120 ? `${Math.ceil(state.cooldown / 60)}m` : String(state.cooldown);
         layers.push(
           `<text x="72" y="74" text-anchor="middle" dominant-baseline="central" font-family="Arial Black, sans-serif" font-size="46" font-weight="900" fill="#FFFFFF">${cdText}</text>`
         );
@@ -17923,9 +17923,14 @@ function decodeStatusBitmask(mask) {
     onCooldown: (m & STATUS_BITS.ON_COOLDOWN) !== 0
   };
 }
+function decodeCooldownByte(byteVal) {
+  const b = clampByte(byteVal);
+  if (b <= 240) return b;
+  return 240 + (b - 240) * 60;
+}
 function decodeSlotPixels(slot, pixelA, pixelB) {
   const fileDataId = decodeFileDataId(pixelA);
-  const cooldown = clampByte(pixelB.r);
+  const cooldown = decodeCooldownByte(pixelB.r);
   const rawG = clampByte(pixelB.g);
   const rawMask = rawG & 31;
   const stacks = rawG >>> 5 & 7;
@@ -17941,7 +17946,7 @@ function decodeSlotPixels(slot, pixelA, pixelB) {
     ...flags
   };
 }
-function scanAndDecodeBgraBuffer(bgra, width, height, tolerance = 0) {
+function scanAndDecodeBgraBuffer(bgra, width, height, tolerance = 4) {
   if (width < TELEMETRY_STRIP_WIDTH || height < 1) {
     return null;
   }
@@ -18009,7 +18014,7 @@ function scanAndDecodeBgraBuffer(bgra, width, height, tolerance = 0) {
                   slotEntry.cooldownProgress = Math.min(1, Math.max(0, resolvedProgress));
                 }
                 if (durByte > 0) {
-                  slotEntry.cooldownTotalDuration = durByte;
+                  slotEntry.cooldownTotalDuration = decodeCooldownByte(durByte);
                 }
               }
               break;
@@ -18117,7 +18122,7 @@ var Win32TelemetryBridge = class {
       return null;
     }
     const bgraBuffer = Buffer.from(res.bgraBase64, "base64");
-    const match = scanAndDecodeBgraBuffer(bgraBuffer, res.width, res.height, 2);
+    const match = scanAndDecodeBgraBuffer(bgraBuffer, res.width, res.height, 4);
     return match ? match.slots : null;
   }
   /**

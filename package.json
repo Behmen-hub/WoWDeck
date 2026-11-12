@@ -1,6 +1,6 @@
 {
   "name": "wowdeck-streamdeck-plugin",
-  "version": "1.1.0",
+  "version": "1.0.1",
   "description": "Bidirectional World of Warcraft Forever integration for Elgato Stream Deck (116 Slots)",
   "type": "module",
   "author": "Behmen",

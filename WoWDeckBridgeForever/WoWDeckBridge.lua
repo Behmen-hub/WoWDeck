@@ -476,12 +476,25 @@ local function ScanAllBonusBarSlotsOutOfCombat()
     end
 end
 
+local function EncodeCooldownByte(seconds)
+    local sec = SafeNumber(seconds)
+    if sec <= 0 then
+        return 0
+    end
+    local rounded = ceil(sec)
+    if rounded <= 240 then
+        return rounded
+    end
+    return min(255, 240 + ceil((rounded - 240) / 60))
+end
+
 local function ComputeSmoothCooldownMetrics(rem, totalDuration)
     if rem <= 0 then
         return 0, 0.0, false
     end
-    local cdSeconds = min(255, ceil(rem))
-    local denom = (totalDuration and totalDuration > 0) and totalDuration or max(1.0, cdSeconds)
+    local cdSeconds = EncodeCooldownByte(rem)
+    local actualSeconds = ceil(rem)
+    local denom = (totalDuration and totalDuration > 0) and totalDuration or max(1.0, actualSeconds)
     local progress = min(1.0, max(0.0, rem / denom))
     return cdSeconds, progress, true
 end
@@ -755,25 +768,39 @@ end
 
 local pixels = {}
 local progressPixels = {}
+local lastAppliedPhysHeight = 0
+local lastAppliedUiHeight = 0
 
-local function ComputePixelScale()
-    local _, screenHeight = GetPhysicalScreenSize()
-    screenHeight = SafeNumber(screenHeight)
-    if screenHeight <= 0 then
-        screenHeight = 1080
+local function ApplyOneToOnePhysicalPixelScale()
+    local _, physHeight = GetPhysicalScreenSize()
+    physHeight = SafeNumber(physHeight)
+    if physHeight <= 0 then
+        physHeight = 1080
     end
-    local effectiveScale = UIParent and UIParent.GetEffectiveScale and SafeNumber(UIParent:GetEffectiveScale()) or 1
-    if effectiveScale <= 0 then
-        effectiveScale = 1
+
+    local uiHeight = (UIParent and UIParent.GetHeight and SafeNumber(UIParent:GetHeight())) or 768
+    if uiHeight <= 0 then
+        uiHeight = 768
     end
-    return 768 / screenHeight / effectiveScale
+
+    lastAppliedPhysHeight = physHeight
+    lastAppliedUiHeight = uiHeight
+
+    local scale = uiHeight / physHeight
+    if scale <= 0 then
+        scale = 1
+    end
+
+    telemetryFrame:SetScale(scale)
+    telemetryFrame:ClearAllPoints()
+    telemetryFrame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 0, 0)
 end
 
 local function LayoutTelemetryPixels()
-    local pixelScale = ComputePixelScale()
-    telemetryFrame:SetSize(pixelScale * (TOTAL_PIXELS + 1), pixelScale * 3)
+    ApplyOneToOnePhysicalPixelScale()
+    telemetryFrame:SetSize(TOTAL_PIXELS, 2)
 
-    for pixelIndex = 0, TOTAL_PIXELS do
+    for pixelIndex = 0, TOTAL_PIXELS - 1 do
         local tex = pixels[pixelIndex]
         if not tex then
             tex = telemetryFrame:CreateTexture(nil, "OVERLAY")
@@ -785,8 +812,8 @@ local function LayoutTelemetryPixels()
             pixels[pixelIndex] = tex
         end
         tex:ClearAllPoints()
-        tex:SetSize(pixelScale, pixelScale)
-        tex:SetPoint("TOPLEFT", telemetryFrame, "TOPLEFT", pixelIndex * pixelScale, 0)
+        tex:SetSize(1, 1)
+        tex:SetPoint("TOPLEFT", telemetryFrame, "TOPLEFT", pixelIndex, 0)
 
         local progTex = progressPixels[pixelIndex]
         if not progTex then
@@ -799,8 +826,8 @@ local function LayoutTelemetryPixels()
             progressPixels[pixelIndex] = progTex
         end
         progTex:ClearAllPoints()
-        progTex:SetSize(pixelScale, pixelScale * 2)
-        progTex:SetPoint("TOPLEFT", telemetryFrame, "TOPLEFT", pixelIndex * pixelScale, -pixelScale)
+        progTex:SetSize(1, 1)
+        progTex:SetPoint("TOPLEFT", telemetryFrame, "TOPLEFT", pixelIndex, -1)
     end
 
     pixels[0]:SetColorTexture(18 / 255, 52 / 255, 86 / 255, 1)
@@ -813,6 +840,12 @@ end
 LayoutTelemetryPixels()
 
 local function UpdateTelemetry()
+    local _, curPhysH = GetPhysicalScreenSize()
+    local curUiH = (UIParent and UIParent.GetHeight and SafeNumber(UIParent:GetHeight())) or 768
+    if SafeNumber(curPhysH) ~= lastAppliedPhysHeight or math.abs(curUiH - lastAppliedUiHeight) > 0.01 then
+        LayoutTelemetryPixels()
+    end
+
     local p0 = pixels[0]
     local p1 = pixels[1]
     if p0 then p0:SetColorTexture(18 / 255, 52 / 255, 86 / 255, 1) end
@@ -884,7 +917,7 @@ local function UpdateTelemetry()
                         local prog16 = min(65535, max(0, floor(cdProgress * 65535 + 0.5)))
                         local pHigh = band(rshift(prog16, 8), 0xFF)
                         local pLow = band(prog16, 0xFF)
-                        local durByte = ClampByte(ceil(totalDuration))
+                        local durByte = EncodeCooldownByte(totalDuration)
                         progTexA:SetColorTexture(pHigh / 255, pLow / 255, durByte / 255, 1)
                         progTexB:SetColorTexture(cdProgress, cdProgress, cdProgress, 1)
                     else
@@ -1132,6 +1165,16 @@ bindingOwner:SetScript("OnEvent", function(self, event, arg1, arg2, arg3)
     elseif event == "UI_SCALE_CHANGED" or event == "DISPLAY_SIZE_CHANGED" then
         LayoutTelemetryPixels()
         UpdateTelemetry()
+        if C_Timer and C_Timer.After then
+            C_Timer.After(0.2, function()
+                LayoutTelemetryPixels()
+                UpdateTelemetry()
+            end)
+            C_Timer.After(0.5, function()
+                LayoutTelemetryPixels()
+                UpdateTelemetry()
+            end)
+        end
     end
 end)
 

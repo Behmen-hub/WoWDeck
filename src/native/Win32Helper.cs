@@ -15,6 +15,12 @@ namespace WoWDeckNative
         // ====================================================================
 
         [DllImport("user32.dll")]
+        private static extern bool SetProcessDpiAwarenessContext(IntPtr dpiContext);
+
+        [DllImport("shcore.dll")]
+        private static extern int SetProcessDpiAwareness(int awareness);
+
+        [DllImport("user32.dll")]
         private static extern bool SetProcessDPIAware();
 
         [DllImport("user32.dll")]
@@ -40,9 +46,6 @@ namespace WoWDeckNative
 
         [DllImport("user32.dll")]
         private static extern bool IsIconic(IntPtr hWnd);
-
-        [DllImport("user32.dll")]
-        private static extern bool ClientToScreen(IntPtr hWnd, ref POINT lpPoint);
 
         [DllImport("gdi32.dll")]
         private static extern IntPtr CreateCompatibleDC(IntPtr hdc);
@@ -149,13 +152,6 @@ namespace WoWDeckNative
         };
 
         [StructLayout(LayoutKind.Sequential)]
-        private struct POINT
-        {
-            public int X;
-            public int Y;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
         private struct BITMAPINFOHEADER
         {
             public uint biSize;
@@ -229,8 +225,32 @@ namespace WoWDeckNative
         private static int _cachedHeight = 0;
         private static byte[] _pixelBuffer = null;
 
-        private static void Main(string[] args)
+        private static void EnablePerMonitorDpiAwareness()
         {
+            try
+            {
+                // DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = -4
+                if (SetProcessDpiAwarenessContext(new IntPtr(-4)))
+                {
+                    return;
+                }
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                // PROCESS_PER_MONITOR_DPI_AWARE = 2
+                if (SetProcessDpiAwareness(2) == 0)
+                {
+                    return;
+                }
+            }
+            catch
+            {
+            }
+
             try
             {
                 SetProcessDPIAware();
@@ -238,6 +258,11 @@ namespace WoWDeckNative
             catch
             {
             }
+        }
+
+        private static void Main(string[] args)
+        {
+            EnablePerMonitorDpiAwareness();
 
             Console.InputEncoding = Encoding.UTF8;
             Console.OutputEncoding = Encoding.UTF8;
@@ -384,20 +409,6 @@ namespace WoWDeckNative
 
             int originX = 0;
             int originY = 0;
-
-            IntPtr wowHwnd = FindWoWWindow();
-            if (wowHwnd != IntPtr.Zero)
-            {
-                POINT pt = new POINT { X = 0, Y = 0 };
-                if (ClientToScreen(wowHwnd, ref pt))
-                {
-                    if (pt.X >= 0 && pt.Y >= 0)
-                    {
-                        originX = pt.X;
-                        originY = pt.Y;
-                    }
-                }
-            }
 
             IntPtr hDesktop = GetDesktopWindow();
             IntPtr hdcScreen = GetWindowDC(hDesktop);

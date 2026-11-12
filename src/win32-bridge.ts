@@ -122,7 +122,7 @@ export class Win32TelemetryBridge {
 			return null;
 		}
 		const bgraBuffer = Buffer.from(res.bgraBase64, "base64");
-		const match = scanAndDecodeBgraBuffer(bgraBuffer, res.width, res.height, 2);
+		const match = scanAndDecodeBgraBuffer(bgraBuffer, res.width, res.height, 4);
 		return match ? match.slots : null;
 	}
 

@@ -464,7 +464,10 @@ export class IconResolverAndRenderer {
 				layers.push(sweepPath);
 			}
 			if (state.cooldown > 0) {
-				const cdText = String(state.cooldown);
+				const cdText =
+					state.cooldown >= 120
+						? `${Math.ceil(state.cooldown / 60)}m`
+						: String(state.cooldown);
 				layers.push(
 					`<text x="72" y="74" text-anchor="middle" dominant-baseline="central" font-family="Arial Black, sans-serif" font-size="46" font-weight="900" fill="#FFFFFF">${cdText}</text>`,
 				);
