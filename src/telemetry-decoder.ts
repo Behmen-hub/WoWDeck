@@ -328,14 +328,14 @@ export function decodeStatusBitmask(mask: number): SlotStatusFlags {
 export function encodeCooldownByte(seconds: number): number {
     if (!Number.isFinite(seconds) || seconds <= 0) return 0;
     const rounded = Math.ceil(seconds);
-    if (rounded <= 240) return rounded;
-    return Math.min(255, 240 + Math.ceil((rounded - 240) / 60));
+    if (rounded <= 120) return rounded;
+    return Math.min(255, 120 + Math.ceil((rounded - 120) / 60));
 }
 
 export function decodeCooldownByte(byteVal: number): number {
     const b = clampByte(byteVal);
-    if (b <= 240) return b;
-    return 240 + (b - 240) * 60;
+    if (b <= 120) return b;
+    return 120 + (b - 120) * 60;
 }
 
 export function encodeSlotPixelB(params: {

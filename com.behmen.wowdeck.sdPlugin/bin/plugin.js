@@ -17703,8 +17703,9 @@ var IconResolverAndRenderer = class {
       }
       if (state.cooldown > 0) {
         const cdText = state.cooldown >= 120 ? `${Math.ceil(state.cooldown / 60)}m` : String(state.cooldown);
+        const fontSize = cdText.length >= 4 ? 36 : cdText.length === 3 ? 40 : 46;
         layers.push(
-          `<text x="72" y="74" text-anchor="middle" dominant-baseline="central" font-family="Arial Black, sans-serif" font-size="46" font-weight="900" fill="#FFFFFF">${cdText}</text>`
+          `<text x="72" y="74" text-anchor="middle" dominant-baseline="central" font-family="Arial Black, sans-serif" font-size="${fontSize}" font-weight="900" fill="#FFFFFF">${cdText}</text>`
         );
       }
     }
@@ -17925,8 +17926,8 @@ function decodeStatusBitmask(mask) {
 }
 function decodeCooldownByte(byteVal) {
   const b = clampByte(byteVal);
-  if (b <= 240) return b;
-  return 240 + (b - 240) * 60;
+  if (b <= 120) return b;
+  return 120 + (b - 120) * 60;
 }
 function decodeSlotPixels(slot, pixelA, pixelB) {
   const fileDataId = decodeFileDataId(pixelA);

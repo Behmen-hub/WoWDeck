@@ -1,0 +1,7 @@
+## Interface: 120000, 110200, 110105, 110100, 110007, 110005, 110002, 110000
+## Title: WoWDeckBridge Retail
+## Notes: Bidirectional optical telemetry strip (TOPLEFT 234x1) and dynamic Zero-Collision SecureActionButton bindings for Elgato Stream Deck (116 Slots).
+## Author: Behmen
+## Version: 1.0.2
+
+WoWDeckBridge.lua

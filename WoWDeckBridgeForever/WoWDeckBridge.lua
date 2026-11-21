@@ -482,10 +482,10 @@ local function EncodeCooldownByte(seconds)
         return 0
     end
     local rounded = ceil(sec)
-    if rounded <= 240 then
+    if rounded <= 120 then
         return rounded
     end
-    return min(255, 240 + ceil((rounded - 240) / 60))
+    return min(255, 120 + ceil((rounded - 120) / 60))
 end
 
 local function ComputeSmoothCooldownMetrics(rem, totalDuration)

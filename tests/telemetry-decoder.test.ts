@@ -4,10 +4,12 @@ import { describe, expect, it } from "vitest";
 import { IconResolverAndRenderer } from "../src/icon-renderer.js";
 import {
 	CANDIDATE_KEY_POOL,
+	decodeCooldownByte,
 	decodeFileDataId,
 	decodeSlotPixels,
 	decodeStatusBitmask,
 	decodeTelemetryStripAtOffset,
+	encodeCooldownByte,
 	encodeFileDataId,
 	encodeSlotPixelB,
 	encodeStatusBitmask,
@@ -303,7 +305,7 @@ describe("WoWDeck 234-Pixel (116 Slots) Telemetry Protocol & 174-Key Zero-Collis
 			if (s % 3 !== 0) {
 				expect(item.hasAction).toBe(true);
 				expect(item.fileDataId).toBe(130000 + s * 19);
-				expect(item.cooldown).toBe((s * 2) % 256);
+				expect(item.cooldown).toBe(decodeCooldownByte(encodeCooldownByte((s * 2) % 256)));
 				expect(item.stacks).toBe(s % 8);
 			} else {
 				expect(item.hasAction).toBe(false);
@@ -561,6 +563,74 @@ describe("WoWDeck 234-Pixel (116 Slots) Telemetry Protocol & 174-Key Zero-Collis
 
 		expect(signatures.size).toBe(20);
 		expect(paths.size).toBe(20);
+	});
+
+	it("encodes and decodes cooldown bytes with 120s threshold and supports up to 137 minutes (8220s)", () => {
+		// Exact seconds 0..120
+		expect(encodeCooldownByte(0)).toBe(0);
+		expect(decodeCooldownByte(0)).toBe(0);
+
+		expect(encodeCooldownByte(1)).toBe(1);
+		expect(decodeCooldownByte(1)).toBe(1);
+
+		expect(encodeCooldownByte(119)).toBe(119);
+		expect(decodeCooldownByte(119)).toBe(119);
+
+		expect(encodeCooldownByte(120)).toBe(120);
+		expect(decodeCooldownByte(120)).toBe(120);
+
+		// > 120 seconds: minute increments
+		// 121 seconds -> ceil((121-120)/60) = 1 minute step -> byte 121 -> decodes to 120 + 1*60 = 180s (3m)
+		expect(encodeCooldownByte(121)).toBe(121);
+		expect(decodeCooldownByte(121)).toBe(180);
+
+		// 1800s (30m) -> 120 + ceil((1800-120)/60) = 120 + 28 = 148 -> decodes to 120 + 28*60 = 1800s (30m)
+		expect(encodeCooldownByte(1800)).toBe(148);
+		expect(decodeCooldownByte(148)).toBe(1800);
+
+		// 3600s (60m) -> 120 + ceil((3600-120)/60) = 120 + 58 = 178 -> decodes to 120 + 58*60 = 3600s (60m)
+		expect(encodeCooldownByte(3600)).toBe(178);
+		expect(decodeCooldownByte(178)).toBe(3600);
+
+		// 8220s (137m) -> 120 + ceil((8220-120)/60) = 120 + 135 = 255 -> decodes to 120 + 135*60 = 8220s (137m)
+		expect(encodeCooldownByte(8220)).toBe(255);
+		expect(decodeCooldownByte(255)).toBe(8220);
+
+		// > 8220s (e.g. 10000s) -> capped at byte 255 -> decodes to 8220s (137m)
+		expect(encodeCooldownByte(10000)).toBe(255);
+		expect(decodeCooldownByte(encodeCooldownByte(10000))).toBe(8220);
+	});
+
+	it("renders minute-based cooldowns (e.g. 30m, 60m, 137m) cleanly centered without overflow", () => {
+		const renderer = new IconResolverAndRenderer();
+		const baseState: DecodedSlotTelemetry = {
+			slot: 1,
+			fileDataId: 136048,
+			cooldown: 0,
+			stacks: 0,
+			rawMask: 1,
+			keyPoolIndex: 1,
+			hasAction: true,
+			isUsable: true,
+			notEnoughMana: false,
+			outOfRange: false,
+			onCooldown: true,
+		};
+
+		// 30m (1800s) -> 3 chars -> font-size 40
+		const svg30m = renderer.renderSlotSvgMarkup({ ...baseState, cooldown: 1800 }, "data:image/png;base64,AAAA");
+		expect(svg30m).toContain('>30m</text>');
+		expect(svg30m).toContain('font-size="40"');
+
+		// 60m (3600s) -> 3 chars -> font-size 40
+		const svg60m = renderer.renderSlotSvgMarkup({ ...baseState, cooldown: 3600 }, "data:image/png;base64,AAAA");
+		expect(svg60m).toContain('>60m</text>');
+		expect(svg60m).toContain('font-size="40"');
+
+		// 137m (8220s) -> 4 chars -> font-size 36
+		const svg137m = renderer.renderSlotSvgMarkup({ ...baseState, cooldown: 8220 }, "data:image/png;base64,AAAA");
+		expect(svg137m).toContain('>137m</text>');
+		expect(svg137m).toContain('font-size="36"');
 	});
 
 	it("verifies full English Property Inspector UI and live active keybinding telemetry listener in slot-action.html", () => {
