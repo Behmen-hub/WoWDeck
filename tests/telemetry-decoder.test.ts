@@ -633,6 +633,55 @@ describe("WoWDeck 234-Pixel (116 Slots) Telemetry Protocol & 174-Key Zero-Collis
 		expect(svg137m).toContain('font-size="36"');
 	});
 
+	it("renders high-contrast stacks/charges badge (pill + outline + white text) above overlays and cooldown sweep with dynamic sizing", () => {
+		const renderer = new IconResolverAndRenderer();
+		const baseState: DecodedSlotTelemetry = {
+			slot: 3,
+			fileDataId: 136048,
+			cooldown: 12,
+			cooldownProgress: 0.5,
+			cooldownTotalDuration: 24,
+			stacks: 4,
+			rawMask: 31,
+			keyPoolIndex: 3,
+			hasAction: true,
+			isUsable: true,
+			notEnoughMana: true,
+			outOfRange: true,
+			onCooldown: true,
+		};
+
+		// 1-digit stack (4) -> font-size 36
+		const svg4 = renderer.renderSlotSvgMarkup(baseState, "data:image/png;base64,AAAA");
+		expect(svg4).toContain('fill="#000000" fill-opacity="0.72"');
+		expect(svg4).toContain('text-anchor="end" font-family="Arial Black, sans-serif" font-size="36" font-weight="900" fill="#000000" stroke="#000000" stroke-width="5" stroke-linejoin="round" paint-order="stroke fill">4</text>');
+		expect(svg4).toContain('text-anchor="end" font-family="Arial Black, sans-serif" font-size="36" font-weight="900" fill="#FFFFFF">4</text>');
+
+		// Verify Z-Order: Base Icon < Mana/Range Overlays < Cooldown Sweep < Stack Pill < Stack Outline < Stack Fill
+		const iconIdx = svg4.indexOf("<image ");
+		const manaIdx = svg4.indexOf('fill="#0032B4"');
+		const rangeIdx = svg4.indexOf('fill="#B40000"');
+		const sweepIdx = svg4.indexOf('<path d="M 72 72 L ');
+		const pillIdx = svg4.indexOf('fill="#000000" fill-opacity="0.72"');
+		const stackOutlineIdx = svg4.indexOf('stroke="#000000" stroke-width="5"');
+		const stackFillIdx = svg4.indexOf('fill="#FFFFFF">4</text>');
+		expect(iconIdx).toBeGreaterThan(-1);
+		expect(manaIdx).toBeGreaterThan(iconIdx);
+		expect(rangeIdx).toBeGreaterThan(manaIdx);
+		expect(sweepIdx).toBeGreaterThan(rangeIdx);
+		expect(pillIdx).toBeGreaterThan(sweepIdx);
+		expect(stackOutlineIdx).toBeGreaterThan(pillIdx);
+		expect(stackFillIdx).toBeGreaterThan(stackOutlineIdx);
+
+		// 2-digit stack (20) -> font-size 34
+		const svg20 = renderer.renderSlotSvgMarkup({ ...baseState, stacks: 20 }, "data:image/png;base64,AAAA");
+		expect(svg20).toContain('font-size="34" font-weight="900" fill="#FFFFFF">20</text>');
+
+		// 3-digit stack (100) -> font-size 28
+		const svg100 = renderer.renderSlotSvgMarkup({ ...baseState, stacks: 100 }, "data:image/png;base64,AAAA");
+		expect(svg100).toContain('font-size="28" font-weight="900" fill="#FFFFFF">100</text>');
+	});
+
 	it("verifies full English Property Inspector UI and live active keybinding telemetry listener in slot-action.html", () => {
 		const htmlPath = path.resolve(
 			process.cwd(),

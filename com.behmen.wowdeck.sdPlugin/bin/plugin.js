@@ -17711,8 +17711,20 @@ var IconResolverAndRenderer = class {
     }
     if (state.stacks > 1) {
       const stackText = String(state.stacks);
+      const charCount = stackText.length;
+      const stackFontSize = charCount >= 3 ? 28 : charCount === 2 ? 34 : 36;
+      const pillHeight = stackFontSize + 8;
+      const pillWidth = Math.round(charCount * stackFontSize * 0.72) + 18;
+      const pillRight = 134;
+      const pillBottom = 134;
+      const pillX = pillRight - pillWidth;
+      const pillY = pillBottom - pillHeight;
+      const textX = pillRight - 9;
+      const textY = pillY + Math.round((pillHeight + stackFontSize * 0.72) / 2);
       layers.push(
-        `<text x="134" y="132" text-anchor="end" font-family="Segoe UI, Arial Black, sans-serif" font-size="30" font-weight="900" fill="#ffffff" stroke="#000000" stroke-width="5" paint-order="stroke fill">${stackText}</text>`
+        `<rect x="${pillX}" y="${pillY}" width="${pillWidth}" height="${pillHeight}" rx="9" ry="9" fill="#000000" fill-opacity="0.72" />`,
+        `<text x="${textX}" y="${textY}" text-anchor="end" font-family="Arial Black, sans-serif" font-size="${stackFontSize}" font-weight="900" fill="#000000" stroke="#000000" stroke-width="5" stroke-linejoin="round" paint-order="stroke fill">${stackText}</text>`,
+        `<text x="${textX}" y="${textY}" text-anchor="end" font-family="Arial Black, sans-serif" font-size="${stackFontSize}" font-weight="900" fill="#FFFFFF">${stackText}</text>`
       );
     }
     return `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">${layers.join("")}</svg>`;
