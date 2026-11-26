@@ -907,22 +907,24 @@ local function UpdateTelemetry()
                     mask = bor(mask, 16) -- Bit 4: onCooldown / active
                 end
 
+                -- Row 0 keeps 3-bit fallback (0..7); Row 1 Pixel B Green encodes full 8-bit stacks (0..255).
                 local clampedStacks = min(7, max(0, floor(stacks)))
                 local greenByte = bor(mask, lshift(clampedStacks, 5))
 
                 texB:SetColorTexture(cdSeconds / 255, greenByte / 255, poolIdx / 255, 1)
 
                 if progTexA and progTexB then
+                    local fullStacksByte = ClampByte(floor(stacks))
                     if onCooldown and cdProgress > 0 then
                         local prog16 = min(65535, max(0, floor(cdProgress * 65535 + 0.5)))
                         local pHigh = band(rshift(prog16, 8), 0xFF)
                         local pLow = band(prog16, 0xFF)
                         local durByte = EncodeCooldownByte(totalDuration)
                         progTexA:SetColorTexture(pHigh / 255, pLow / 255, durByte / 255, 1)
-                        progTexB:SetColorTexture(cdProgress, cdProgress, cdProgress, 1)
+                        progTexB:SetColorTexture(cdProgress, fullStacksByte / 255, 0, 1)
                     else
                         progTexA:SetColorTexture(0, 0, 0, 1)
-                        progTexB:SetColorTexture(0, 0, 0, 1)
+                        progTexB:SetColorTexture(0, fullStacksByte / 255, 0, 1)
                     end
                 end
             else

@@ -1,4 +1,5 @@
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 import { IconResolverAndRenderer } from "../src/icon-renderer.js";
@@ -13,6 +14,7 @@ import {
 	encodeFileDataId,
 	encodeSlotPixelB,
 	encodeStatusBitmask,
+	encodeTelemetryRow1Strip,
 	encodeTelemetryStrip,
 	getCandidateKeyByPoolIndex,
 	getWoWActionSlotForStreamDeckIndex,
@@ -22,6 +24,7 @@ import {
 	STATUS_BITS,
 	SYNC_HEADER_0,
 	SYNC_HEADER_1,
+	SYNC_HEADER_ROW1,
 	TELEMETRY_STRIP_WIDTH,
 	type DecodedSlotTelemetry,
 	type SlotStatusFlags,
@@ -701,5 +704,439 @@ describe("WoWDeck 234-Pixel (116 Slots) Telemetry Protocol & 174-Key Zero-Collis
 		);
 		expect(html).toContain("Dynamic (Zero-Collision, active: ");
 		expect(html).toContain("sendToPropertyInspector");
+	});
+
+	it("avoids Wowhead scraping and negatively caches failed icon fetches", async () => {
+		const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "wowdeck-icon-neg-"));
+		const originalFetch = globalThis.fetch;
+		const requests: Array<{ url: string; userAgent: string | null; accept: string | null }> = [];
+
+		globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: RequestInit): Promise<Response> => {
+			const url = typeof input === "string" ? input : input.toString();
+			const headers = new Headers(init?.headers);
+			requests.push({
+				url,
+				userAgent: headers.get("User-Agent"),
+				accept: headers.get("Accept"),
+			});
+			return new Response("Not Found", { status: 404 });
+		}) as typeof fetch;
+
+		try {
+			const renderer = new IconResolverAndRenderer({
+				cacheDir: tempDir,
+				minRequestIntervalMs: 0,
+				enableLocalCasc: false,
+			});
+
+			const first = await renderer.resolveIconDataUri(999999);
+			expect(first).toBeNull();
+			expect(requests).toHaveLength(1);
+			expect(requests[0].url).toBe("https://wago.tools/api/casc/999999?format=png");
+			expect(requests.some((r) => r.url.includes("wowhead.com"))).toBe(false);
+			expect(requests[0].userAgent).toBeNull();
+			expect(requests[0].accept).toContain("image/png");
+			expect(renderer.isNegativelyCached(999999)).toBe(true);
+			expect(renderer.canAttemptResolve(999999)).toBe(false);
+
+			const second = await renderer.resolveIconDataUri(999999);
+			expect(second).toBeNull();
+			expect(requests).toHaveLength(1);
+		} finally {
+			globalThis.fetch = originalFetch;
+			fs.rmSync(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("triggers host circuit breaker on HTTP 403 and 429 responses", async () => {
+		const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "wowdeck-icon-cb-"));
+		const iconMapPath = path.join(tempDir, "icon-map.json");
+		fs.writeFileSync(
+			iconMapPath,
+			JSON.stringify({
+				"777001": "spell_fire_fireball",
+				"777002": "spell_frost_frostbolt",
+			}),
+			"utf8",
+		);
+		const originalFetch = globalThis.fetch;
+		const requestedUrls: string[] = [];
+
+		globalThis.fetch = (async (input: Parameters<typeof fetch>[0]): Promise<Response> => {
+			const url = typeof input === "string" ? input : input.toString();
+			requestedUrls.push(url);
+			if (url.includes("render.worldofwarcraft.com")) {
+				return new Response("Too Many Requests", { status: 429 });
+			}
+			if (url.includes("wago.tools")) {
+				return new Response("Forbidden", { status: 403 });
+			}
+			return new Response("Not Found", { status: 404 });
+		}) as typeof fetch;
+
+		try {
+			const renderer = new IconResolverAndRenderer({
+				cacheDir: tempDir,
+				iconMapPath,
+				minRequestIntervalMs: 0,
+				enableLocalCasc: false,
+			});
+
+			await renderer.resolveIconDataUri(777001);
+			expect(renderer.isHostBlocked("render.worldofwarcraft.com")).toBe(true);
+			expect(renderer.isHostBlocked("wago.tools")).toBe(true);
+
+			const countAfterFirst = requestedUrls.length;
+			await renderer.resolveIconDataUri(777002);
+
+			const extraUrls = requestedUrls.slice(countAfterFirst);
+			expect(extraUrls.some((u) => u.includes("render.worldofwarcraft.com"))).toBe(false);
+			expect(extraUrls.some((u) => u.includes("wago.tools"))).toBe(false);
+			expect(requestedUrls.filter((u) => u.includes("render.worldofwarcraft.com"))).toHaveLength(1);
+			expect(requestedUrls.filter((u) => u.includes("wago.tools"))).toHaveLength(1);
+		} finally {
+			globalThis.fetch = originalFetch;
+			fs.rmSync(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("serializes concurrent icon downloads through a paced queue", async () => {
+		const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "wowdeck-icon-queue-"));
+		const originalFetch = globalThis.fetch;
+		const validPng = Buffer.alloc(70, 0);
+		validPng[0] = 0x89;
+		validPng[1] = 0x50;
+		validPng[2] = 0x4e;
+		validPng[3] = 0x47;
+
+		let active = 0;
+		let maxConcurrent = 0;
+		const startTimes: number[] = [];
+
+		globalThis.fetch = (async (): Promise<Response> => {
+			active += 1;
+			maxConcurrent = Math.max(maxConcurrent, active);
+			startTimes.push(Date.now());
+			await new Promise((resolve) => setTimeout(resolve, 5));
+			active -= 1;
+			return new Response(validPng, { status: 200 });
+		}) as typeof fetch;
+
+		try {
+			const renderer = new IconResolverAndRenderer({
+				cacheDir: tempDir,
+				minRequestIntervalMs: 35,
+				enableLocalCasc: false,
+			});
+
+			const results = await Promise.all([
+				renderer.resolveIconDataUri(700001),
+				renderer.resolveIconDataUri(700002),
+				renderer.resolveIconDataUri(700003),
+			]);
+
+			expect(results.every((uri) => uri?.startsWith("data:image/png;base64,"))).toBe(true);
+			expect(maxConcurrent).toBe(1);
+			expect(startTimes).toHaveLength(3);
+			expect(startTimes[1] - startTimes[0]).toBeGreaterThanOrEqual(25);
+			expect(startTimes[2] - startTimes[1]).toBeGreaterThanOrEqual(25);
+		} finally {
+			globalThis.fetch = originalFetch;
+			fs.rmSync(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("encodes and decodes full 8-bit stacks (0..255) via Row 1 both on and off cooldown with Lua parity", () => {
+		const testSlots: Array<Partial<DecodedSlotTelemetry>> = [
+			{ slot: 1, hasAction: true, fileDataId: 136048, stacks: 67, onCooldown: false, cooldown: 0 },
+			{
+				slot: 2,
+				hasAction: true,
+				fileDataId: 135813,
+				stacks: 200,
+				onCooldown: true,
+				cooldown: 5,
+				cooldownProgress: 0.4,
+				cooldownTotalDuration: 12,
+			},
+			{ slot: 3, hasAction: true, fileDataId: 135907, stacks: 255, onCooldown: false, cooldown: 0 },
+			{ slot: 4, hasAction: true, fileDataId: 132328, stacks: 7, onCooldown: false, cooldown: 0 },
+			{
+				slot: 5,
+				hasAction: true,
+				fileDataId: 132152,
+				stacks: 1,
+				onCooldown: true,
+				cooldown: 3,
+				cooldownProgress: 0.25,
+				cooldownTotalDuration: 10,
+			},
+			{ slot: 6, hasAction: true, fileDataId: 136106, stacks: 0, onCooldown: false, cooldown: 0 },
+		];
+
+		const row0 = encodeTelemetryStrip(testSlots);
+		const row1 = encodeTelemetryRow1Strip(testSlots);
+		expect(row1[1]).toEqual(SYNC_HEADER_ROW1);
+
+		const bgra = new Uint8Array(TELEMETRY_STRIP_WIDTH * 2 * 4);
+		for (let x = 0; x < TELEMETRY_STRIP_WIDTH; x++) {
+			const off0 = x * 4;
+			bgra[off0] = row0[x].b;
+			bgra[off0 + 1] = row0[x].g;
+			bgra[off0 + 2] = row0[x].r;
+			bgra[off0 + 3] = 255;
+
+			const off1 = (TELEMETRY_STRIP_WIDTH + x) * 4;
+			bgra[off1] = row1[x].b;
+			bgra[off1 + 1] = row1[x].g;
+			bgra[off1 + 2] = row1[x].r;
+			bgra[off1 + 3] = 255;
+		}
+
+		const decoded = scanAndDecodeBgraBuffer(bgra, TELEMETRY_STRIP_WIDTH, 2);
+		expect(decoded).not.toBeNull();
+		const slots = decoded!.slots;
+
+		expect(slots[0].stacks).toBe(67);
+		expect(slots[0].cooldownProgress).toBe(0);
+
+		expect(slots[1].stacks).toBe(200);
+		expect(slots[1].cooldownProgress).toBeCloseTo(0.4, 3);
+		expect(slots[1].cooldownTotalDuration).toBe(12);
+
+		expect(slots[2].stacks).toBe(255);
+		expect(slots[2].cooldownProgress).toBe(0);
+
+		expect(slots[3].stacks).toBe(7);
+		expect(slots[4].stacks).toBe(1);
+		expect(slots[4].cooldownProgress).toBeCloseTo(0.25, 3);
+		expect(slots[5].stacks).toBe(0);
+
+		const resolveLuaPath = (addonFolder: string): string => {
+			const directPath = path.resolve(process.cwd(), addonFolder, "WoWDeckBridge.lua");
+			return fs.existsSync(directPath)
+				? directPath
+				: path.resolve(process.cwd(), "..", "wow-addon", addonFolder, "WoWDeckBridge.lua");
+		};
+		const luaForever = fs.readFileSync(resolveLuaPath("WoWDeckBridgeForever"), "utf8");
+		const luaRetail = fs.readFileSync(resolveLuaPath("WoWDeckBridgeRetail"), "utf8");
+		for (const luaSource of [luaForever, luaRetail]) {
+			expect(luaSource).toContain("local fullStacksByte = ClampByte(floor(stacks))");
+			expect(luaSource).toContain("progTexB:SetColorTexture(cdProgress, fullStacksByte / 255, 0, 1)");
+			expect(luaSource).toContain("progTexB:SetColorTexture(0, fullStacksByte / 255, 0, 1)");
+		}
+	});
+
+	it("logs diagnostic warnings and errors for circuit breaker, HTTP errors, invalid buffers, fetch exceptions, and negative caching", async () => {
+		const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "wowdeck-icon-log-"));
+		const iconMapPath = path.join(tempDir, "icon-map.json");
+		fs.writeFileSync(
+			iconMapPath,
+			JSON.stringify({
+				"888101": "spell_holy_heal",
+			}),
+			"utf8",
+		);
+		const originalFetch = globalThis.fetch;
+		const warns: string[] = [];
+		const errors: string[] = [];
+
+		globalThis.fetch = (async (input: Parameters<typeof fetch>[0]): Promise<Response> => {
+			const url = typeof input === "string" ? input : input.toString();
+			if (url.includes("render.worldofwarcraft.com")) {
+				return new Response("Forbidden", {
+					status: 403,
+					headers: { "content-type": "text/html; charset=utf-8" },
+				});
+			}
+			if (url.includes("wow.zamimg.com")) {
+				return new Response("Not Found", {
+					status: 404,
+					headers: { "content-type": "text/plain" },
+				});
+			}
+			if (url.includes("888101")) {
+				const err = new Error("connect ETIMEDOUT") as Error & { cause?: unknown };
+				err.cause = new Error("socket hang up");
+				throw err;
+			}
+			// 888102: returns invalid non-PNG/JPEG payload (e.g. WebP / HTML challenge)
+			return new Response(Buffer.from("RIFFxxxxWEBP", "ascii"), {
+				status: 200,
+				headers: { "content-type": "image/webp" },
+			});
+		}) as typeof fetch;
+
+		try {
+			const renderer = new IconResolverAndRenderer({
+				cacheDir: tempDir,
+				iconMapPath,
+				minRequestIntervalMs: 0,
+				enableLocalCasc: false,
+				logger: {
+					warn: (msg) => warns.push(msg),
+					error: (msg) => errors.push(msg),
+				},
+			});
+
+			// 1. 403 circuit breaker + 404 + Error with cause + negative cache warn
+			expect(await renderer.resolveIconDataUri(888101)).toBeNull();
+			expect(warns.some((m) => m.includes("403") && m.includes("30m") && m.includes("text/html"))).toBe(true);
+			expect(warns.some((m) => m.includes("404") && m.includes("wow.zamimg.com") && m.includes("text/plain"))).toBe(true);
+			expect(
+				errors.some(
+					(m) =>
+						m.includes("https://wago.tools/api/casc/888101?format=png") &&
+						m.includes("Error:connect ETIMEDOUT") &&
+						m.includes("Error:socket hang up"),
+				),
+			).toBe(true);
+			expect(warns.filter((m) => m.includes("Negative-caching fileDataId=888101"))).toHaveLength(1);
+
+			// 2. Invalid buffer (200 image/webp -> hex prefix + length + status)
+			expect(await renderer.resolveIconDataUri(888102)).toBeNull();
+			expect(
+				warns.some(
+					(m) =>
+						m.includes("https://wago.tools/api/casc/888102?format=png") &&
+						m.includes("status=200") &&
+						m.includes("content-type=image/webp") &&
+						m.includes("length=12") &&
+						m.includes("hex=5249464678787878"),
+				),
+			).toBe(true);
+			expect(warns.filter((m) => m.includes("Negative-caching fileDataId=888102"))).toHaveLength(1);
+		} finally {
+			globalThis.fetch = originalFetch;
+			fs.rmSync(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("follows Stage 1 -> Stage 2 -> Stage 3 icon resolution cascade cleanly", async () => {
+		const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "wowdeck-icon-cascade-"));
+		const iconMapPath = path.join(tempDir, "icon-map.json");
+		fs.writeFileSync(
+			iconMapPath,
+			JSON.stringify({
+				"900001": "spell_stage1_icon",
+				"900002": "spell_stage2_icon",
+			}),
+			"utf8",
+		);
+
+		// Minimal 4x4 uncompressed BGRA BLP2 buffer
+		const makeMiniBlp2 = (b: number, g: number, r: number): Buffer => {
+			const header = Buffer.alloc(148, 0);
+			header.write("BLP2", 0, "ascii");
+			header.writeUInt32LE(1, 4);
+			header[8] = 3; // uncompressed BGRA
+			header[9] = 8;
+			header.writeUInt32LE(2, 12);
+			header.writeUInt32LE(2, 16);
+			header.writeUInt32LE(148, 20);
+			header.writeUInt32LE(16, 84);
+			const pixels = Buffer.alloc(16);
+			for (let i = 0; i < 4; i++) {
+				pixels[i * 4] = b;
+				pixels[i * 4 + 1] = g;
+				pixels[i * 4 + 2] = r;
+				pixels[i * 4 + 3] = 255;
+			}
+			return Buffer.concat([header, pixels]);
+		};
+
+		const validPng = Buffer.alloc(70, 0);
+		validPng[0] = 0x89;
+		validPng[1] = 0x50;
+		validPng[2] = 0x4e;
+		validPng[3] = 0x47;
+
+		const originalFetch = globalThis.fetch;
+		const fetchedUrls: string[] = [];
+		const infos: string[] = [];
+		const warns: string[] = [];
+
+		globalThis.fetch = (async (input: Parameters<typeof fetch>[0]): Promise<Response> => {
+			const url = typeof input === "string" ? input : input.toString();
+			fetchedUrls.push(url);
+			if (url.includes("render.worldofwarcraft.com/eu/icons/56/spell_stage2_icon.jpg")) {
+				return new Response(validPng, {
+					status: 200,
+					headers: { "content-type": "image/jpeg" },
+				});
+			}
+			if (url === "https://wago.tools/api/casc/900003?format=png") {
+				return new Response(makeMiniBlp2(255, 0, 0), {
+					status: 200,
+					headers: { "content-type": "application/octet-stream" },
+				});
+			}
+			if (url === "https://wago.tools/api/casc/900004?format=png") {
+				return new Response("Service Unavailable", {
+					status: 503,
+					headers: { "content-type": "text/plain" },
+				});
+			}
+			return new Response("Not Found", { status: 404 });
+		}) as typeof fetch;
+
+		try {
+			const renderer = new IconResolverAndRenderer({
+				cacheDir: tempDir,
+				iconMapPath,
+				minRequestIntervalMs: 0,
+				cascReader: {
+					async readFileByDataId(fdid: number): Promise<Buffer | null> {
+						if (fdid === 900001) return makeMiniBlp2(0, 200, 100);
+						if (fdid === 900002) throw new Error("Simulated CASC failure");
+						return null;
+					},
+				},
+				logger: {
+					info: (msg) => infos.push(msg),
+					warn: (msg) => warns.push(msg),
+					error: () => undefined,
+				},
+			});
+
+			// 1. Stage 1 resolves offline without any HTTP requests
+			const stage1Uri = await renderer.resolveIconDataUri(900001);
+			expect(stage1Uri?.startsWith("data:image/png;base64,")).toBe(true);
+			expect(fetchedUrls).toHaveLength(0);
+			expect(infos.some((m) => m.includes("Stage 1") && m.includes("900001"))).toBe(true);
+
+			// 2. Stage 1 throws -> falls back cleanly to Stage 2 CDN without hitting wago.tools
+			const stage2Uri = await renderer.resolveIconDataUri(900002);
+			expect(stage2Uri?.startsWith("data:image/png;base64,")).toBe(true);
+			expect(fetchedUrls).toEqual([
+				"https://render.worldofwarcraft.com/eu/icons/56/spell_stage2_icon.jpg",
+			]);
+			expect(warns.some((m) => m.includes("Stage 1 failed") && m.includes("900002"))).toBe(true);
+
+			// 3. Stage 1 & 2 miss -> Stage 3 wago.tools returns raw BLP2 bytes, converted to PNG
+			const stage3Uri = await renderer.resolveIconDataUri(900003);
+			expect(stage3Uri?.startsWith("data:image/png;base64,")).toBe(true);
+			expect(fetchedUrls).toContain("https://wago.tools/api/casc/900003?format=png");
+			expect(infos.some((m) => m.includes("Stage 3") && m.includes("900003"))).toBe(true);
+
+			// 4. Stage 3 fails with 503 -> trips wago.tools circuit breaker & negative caches cleanly
+			expect(await renderer.resolveIconDataUri(900004)).toBeNull();
+			expect(renderer.isHostBlocked("wago.tools")).toBe(true);
+			expect(renderer.isNegativelyCached(900004)).toBe(true);
+		} finally {
+			globalThis.fetch = originalFetch;
+			fs.rmSync(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	it("verifies bundled assets/icon-map.json contains valid lowercase icon names without .blp suffix", () => {
+		const mapPath = path.resolve(process.cwd(), "com.behmen.wowdeck.sdPlugin", "assets", "icon-map.json");
+		expect(fs.existsSync(mapPath)).toBe(true);
+		const parsed = JSON.parse(fs.readFileSync(mapPath, "utf8")) as Record<string, string>;
+		const entries = Object.entries(parsed);
+		expect(entries.length).toBeGreaterThan(10000);
+		expect(parsed["132796"]).toBe("inv_drink_09");
+		expect(parsed["136048"]).toBe("spell_nature_lightning");
+		expect(entries.every(([, val]) => val === val.toLowerCase() && !val.endsWith(".blp"))).toBe(true);
 	});
 });

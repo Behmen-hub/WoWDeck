@@ -418,6 +418,50 @@ export function encodeTelemetryStrip(
     return strip;
 }
 
+/**
+ * Encodes Row 1 (234 RGB pixels) matching WoWDeckBridge.lua:
+ *   Pixel 0 = SYNC_HEADER_0, Pixel 1 = SYNC_HEADER_ROW1
+ *   Pixel A = { r: pHigh, g: pLow, b: durByte } when on cooldown else {0,0,0}
+ *   Pixel B = { r: prog8, g: fullStacksByte, b: 0 } when on cooldown else {0, fullStacksByte, 0}
+ */
+export function encodeTelemetryRow1Strip(
+    slots: ReadonlyArray<Partial<DecodedSlotTelemetry>>,
+): RGBPixel[] {
+    const strip: RGBPixel[] = new Array(TELEMETRY_STRIP_WIDTH);
+    strip[0] = { ...SYNC_HEADER_0 };
+    strip[1] = { ...SYNC_HEADER_ROW1 };
+
+    for (let s = 1; s <= MAX_ACTION_SLOTS; s++) {
+        const idxA = 2 + (s - 1) * 2;
+        const idxB = idxA + 1;
+        const slotState = slots.find((item) => item.slot === s) ?? slots[s - 1];
+
+        if (!slotState || !slotState.hasAction) {
+            strip[idxA] = { r: 0, g: 0, b: 0 };
+            strip[idxB] = { r: 0, g: 0, b: 0 };
+            continue;
+        }
+
+        const fullStacksByte = clampByte(Math.floor(slotState.stacks ?? 0));
+        const cdProgress = Math.min(1.0, Math.max(0.0, slotState.cooldownProgress ?? 0));
+
+        if (slotState.onCooldown && cdProgress > 0) {
+            const prog16 = Math.min(65535, Math.max(0, Math.floor(cdProgress * 65535 + 0.5)));
+            const pHigh = (prog16 >> 8) & 0xff;
+            const pLow = prog16 & 0xff;
+            const durByte = encodeCooldownByte(slotState.cooldownTotalDuration ?? 0);
+            const prog8 = clampByte(Math.round(cdProgress * 255));
+            strip[idxA] = { r: pHigh, g: pLow, b: durByte };
+            strip[idxB] = { r: prog8, g: fullStacksByte, b: 0 };
+        } else {
+            strip[idxA] = { r: 0, g: 0, b: 0 };
+            strip[idxB] = { r: 0, g: fullStacksByte, b: 0 };
+        }
+    }
+
+    return strip;
+}
+
 export function isPixelMatch(a: RGBPixel, b: RGBPixel, tolerance = 0): boolean {
     return (
         Math.abs(a.r - b.r) <= tolerance &&
@@ -537,13 +581,21 @@ export function scanAndDecodeBgraBuffer(
                         ) {
                             for (let s = 1; s <= MAX_ACTION_SLOTS; s++) {
                                 const slotEntry = slots[s - 1];
-                                if (!slotEntry.hasAction || (slotEntry.cooldown <= 0 && !slotEntry.onCooldown)) {
+                                if (!slotEntry.hasAction) {
                                     slotEntry.cooldownProgress = 0;
                                     continue;
                                 }
 
                                 const progOffsetA = progRowIdx0 + (2 + (s - 1) * 2) * 4;
                                 const progOffsetB = progOffsetA + 4;
+
+                                // Row 1 Pixel B Green encodes full 8-bit stacks (0..255) regardless of cooldown state.
+                                slotEntry.stacks = clampByte(bgra[progOffsetB + 1]);
+
+                                if (slotEntry.cooldown <= 0 && !slotEntry.onCooldown) {
+                                    slotEntry.cooldownProgress = 0;
+                                    continue;
+                                }
 
                                 const pHigh = bgra[progOffsetA + 2];
                                 const pLow = bgra[progOffsetA + 1];

@@ -16,6 +16,9 @@ export interface CaptureHelperResponse {
 	originX?: number;
 	originY?: number;
 	bgraBase64?: string;
+	wowRoot?: string;
+	exePath?: string;
+	source?: string;
 	slot?: number;
 	poolIndex?: number;
 	vkCode?: number;
@@ -124,6 +127,21 @@ export class Win32TelemetryBridge {
 		const bgraBuffer = Buffer.from(res.bgraBase64, "base64");
 		const match = scanAndDecodeBgraBuffer(bgraBuffer, res.width, res.height, 4);
 		return match ? match.slots : null;
+	}
+
+	/**
+	 * Queries the helper (Registry first, running WoW process fallback) for the WoW root folder.
+	 */
+	public async getWoWInstallInfo(): Promise<{ wowRoot: string; exePath?: string; source?: string } | null> {
+		const res = await this.sendCommand({ cmd: "getWowPath" });
+		if (!res.ok || !res.wowRoot) {
+			return null;
+		}
+		return {
+			wowRoot: res.wowRoot,
+			exePath: res.exePath,
+			source: res.source,
+		};
 	}
 
 	/**

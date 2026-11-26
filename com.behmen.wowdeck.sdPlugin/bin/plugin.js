@@ -241,7 +241,7 @@ var require_limiter = __commonJS({
 var require_permessage_deflate = __commonJS({
   "node_modules/ws/lib/permessage-deflate.js"(exports, module) {
     "use strict";
-    var zlib = __require("zlib");
+    var zlib3 = __require("zlib");
     var bufferUtil = require_buffer_util();
     var Limiter = require_limiter();
     var { kStatusCode } = require_constants();
@@ -508,8 +508,8 @@ var require_permessage_deflate = __commonJS({
         const endpoint = this._isServer ? "client" : "server";
         if (!this._inflate) {
           const key = `${endpoint}_max_window_bits`;
-          const windowBits = typeof this.params[key] !== "number" ? zlib.Z_DEFAULT_WINDOWBITS : this.params[key];
-          this._inflate = zlib.createInflateRaw({
+          const windowBits = typeof this.params[key] !== "number" ? zlib3.Z_DEFAULT_WINDOWBITS : this.params[key];
+          this._inflate = zlib3.createInflateRaw({
             ...this._options.zlibInflateOptions,
             windowBits
           });
@@ -559,8 +559,8 @@ var require_permessage_deflate = __commonJS({
         const endpoint = this._isServer ? "server" : "client";
         if (!this._deflate) {
           const key = `${endpoint}_max_window_bits`;
-          const windowBits = typeof this.params[key] !== "number" ? zlib.Z_DEFAULT_WINDOWBITS : this.params[key];
-          this._deflate = zlib.createDeflateRaw({
+          const windowBits = typeof this.params[key] !== "number" ? zlib3.Z_DEFAULT_WINDOWBITS : this.params[key];
+          this._deflate = zlib3.createDeflateRaw({
             ...this._options.zlibDeflateOptions,
             windowBits
           });
@@ -570,7 +570,7 @@ var require_permessage_deflate = __commonJS({
         }
         this._deflate[kCallback] = callback;
         this._deflate.write(data);
-        this._deflate.flush(zlib.Z_SYNC_FLUSH, () => {
+        this._deflate.flush(zlib3.Z_SYNC_FLUSH, () => {
           if (!this._deflate) {
             return;
           }
@@ -3996,8 +3996,8 @@ function freeze(value) {
 }
 
 // node_modules/@elgato/utils/dist/objects/get.js
-function get(source, path8) {
-  const props = path8.split(".");
+function get(source, path9) {
+  const props = path9.split(".");
   return props.reduce((obj, prop) => obj && obj[prop], source);
 }
 
@@ -4426,13 +4426,13 @@ var Lazy = class {
 
 // node_modules/@elgato/utils/dist/promises.js
 function withResolvers() {
-  let resolve4;
+  let resolve5;
   let reject;
   const promise2 = new Promise((res, rej) => {
-    resolve4 = res;
+    resolve5 = res;
     reject = rej;
   });
-  return { promise: promise2, resolve: resolve4, reject };
+  return { promise: promise2, resolve: resolve5, reject };
 }
 
 // node_modules/zod/v4/mini/external.js
@@ -5088,10 +5088,10 @@ function assignProp(target, prop, value) {
     configurable: true
   });
 }
-function getElementAtPath(obj, path8) {
-  if (!path8)
+function getElementAtPath(obj, path9) {
+  if (!path9)
     return obj;
-  return path8.reduce((acc, key) => acc?.[key], obj);
+  return path9.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -5411,11 +5411,11 @@ function aborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path8, issues) {
+function prefixIssues(path9, issues) {
   return issues.map((iss) => {
     var _a2;
     (_a2 = iss).path ?? (_a2.path = []);
-    iss.path.unshift(path8);
+    iss.path.unshift(path9);
     return iss;
   });
 }
@@ -5552,7 +5552,7 @@ function treeifyError(error40, _mapper) {
     return issue2.message;
   };
   const result = { errors: [] };
-  const processError = (error41, path8 = []) => {
+  const processError = (error41, path9 = []) => {
     var _a2, _b;
     for (const issue2 of error41.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
@@ -5562,7 +5562,7 @@ function treeifyError(error40, _mapper) {
       } else if (issue2.code === "invalid_element") {
         processError({ issues: issue2.issues }, issue2.path);
       } else {
-        const fullpath = [...path8, ...issue2.path];
+        const fullpath = [...path9, ...issue2.path];
         if (fullpath.length === 0) {
           result.errors.push(mapper(issue2));
           continue;
@@ -5592,9 +5592,9 @@ function treeifyError(error40, _mapper) {
   processError(error40);
   return result;
 }
-function toDotPath(path8) {
+function toDotPath(path9) {
   const segs = [];
-  for (const seg of path8) {
+  for (const seg of path9) {
     if (typeof seg === "number")
       segs.push(`[${seg}]`);
     else if (typeof seg === "symbol")
@@ -15900,12 +15900,12 @@ var ActionEvent = class extends ActionWithoutPayloadEvent {
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 var manifest = new Lazy(() => {
-  const path8 = join(process.cwd(), "manifest.json");
-  if (!existsSync(path8)) {
+  const path9 = join(process.cwd(), "manifest.json");
+  if (!existsSync(path9)) {
     throw new Error("Failed to read manifest.json as the file does not exist.");
   }
   try {
-    return JSON.parse(readFileSync(path8, {
+    return JSON.parse(readFileSync(path9, {
       encoding: "utf-8",
       flag: "r"
     }).toString());
@@ -16163,8 +16163,8 @@ var settings = {
    * @returns Promise containing the plugin's global settings.
    */
   getGlobalSettings: () => {
-    return new Promise((resolve4) => {
-      connection.once("didReceiveGlobalSettings", (ev) => resolve4(ev.payload.settings));
+    return new Promise((resolve5) => {
+      connection.once("didReceiveGlobalSettings", (ev) => resolve5(ev.payload.settings));
       connection.send({
         event: "getGlobalSettings",
         context: connection.registrationParameters.pluginUUID,
@@ -16565,7 +16565,7 @@ var Action = class extends ActionContext {
    * @returns The payload from the received event.
    */
   async #fetch(command, event) {
-    const { resolve: resolve4, reject, promise: promise2 } = withResolvers();
+    const { resolve: resolve5, reject, promise: promise2 } = withResolvers();
     const timeoutId = setTimeout(() => {
       listener.dispose();
       reject("The request timed out");
@@ -16574,7 +16574,7 @@ var Action = class extends ActionContext {
       if (ev.context == this.id) {
         clearTimeout(timeoutId);
         listener.dispose();
-        resolve4(ev);
+        resolve5(ev);
       }
     });
     await connection.send({
@@ -17226,8 +17226,8 @@ function openUrl(url2) {
 function getSecrets() {
   requiresVersion(6.9, connection.version, "Secrets");
   requiresSDKVersion(3, "Secrets");
-  return new Promise((resolve4) => {
-    connection.once("didReceiveSecrets", (ev) => resolve4(ev.payload.secrets));
+  return new Promise((resolve5) => {
+    connection.once("didReceiveSecrets", (ev) => resolve5(ev.payload.secrets));
     connection.send({
       event: "getSecrets",
       context: connection.registrationParameters.pluginUUID
@@ -17340,12 +17340,940 @@ var streamDeck = {
 var plugin_default = streamDeck;
 
 // src/actions/slot-action.ts
-import * as path7 from "node:path";
+import * as path8 from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
 
 // src/icon-renderer.ts
+import * as fs4 from "node:fs";
+import * as path6 from "node:path";
+
+// src/blp-decoder.ts
+import * as zlib from "node:zlib";
+var BLP2_HEADER_SIZE = 148;
+var PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+var CRC32_TABLE = (() => {
+  const table = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) {
+      c = (c & 1) !== 0 ? (3988292384 ^ c >>> 1) >>> 0 : c >>> 1;
+    }
+    table[n] = c;
+  }
+  return table;
+})();
+function crc32(buf) {
+  let crc = 4294967295;
+  for (let i = 0; i < buf.length; i++) {
+    crc = (CRC32_TABLE[(crc ^ buf[i]) & 255] ^ crc >>> 8) >>> 0;
+  }
+  return (crc ^ 4294967295) >>> 0;
+}
+function makePngChunk(type, data) {
+  const typeBuf = Buffer.from(type, "ascii");
+  const chunk = Buffer.allocUnsafe(12 + data.length);
+  chunk.writeUInt32BE(data.length, 0);
+  typeBuf.copy(chunk, 4);
+  data.copy(chunk, 8);
+  const crc = crc32(chunk.subarray(4, 8 + data.length));
+  chunk.writeUInt32BE(crc, 8 + data.length);
+  return chunk;
+}
+function encodeRgbaToPng(rgba, width, height) {
+  const stride = width * 4;
+  const raw = Buffer.allocUnsafe(height * (1 + stride));
+  for (let y = 0; y < height; y++) {
+    const dstRowStart = y * (1 + stride);
+    const srcRowStart = y * stride;
+    raw[dstRowStart] = 0;
+    Buffer.from(rgba.buffer, rgba.byteOffset + srcRowStart, stride).copy(raw, dstRowStart + 1);
+  }
+  const compressed = zlib.deflateSync(raw);
+  const ihdr = Buffer.allocUnsafe(13);
+  ihdr.writeUInt32BE(width, 0);
+  ihdr.writeUInt32BE(height, 4);
+  ihdr[8] = 8;
+  ihdr[9] = 6;
+  ihdr[10] = 0;
+  ihdr[11] = 0;
+  ihdr[12] = 0;
+  return Buffer.concat([
+    PNG_SIGNATURE,
+    makePngChunk("IHDR", ihdr),
+    makePngChunk("IDAT", compressed),
+    makePngChunk("IEND", Buffer.alloc(0))
+  ]);
+}
+function decodeRgb565(value) {
+  const r5 = value >> 11 & 31;
+  const g6 = value >> 5 & 63;
+  const b5 = value & 31;
+  return [r5 << 3 | r5 >> 2, g6 << 2 | g6 >> 4, b5 << 3 | b5 >> 2];
+}
+function decodeColorBlock(buf, colorOffset, allowThreeColorAlpha, alphaBitForThreeColor) {
+  const c0 = buf.readUInt16LE(colorOffset);
+  const c1 = buf.readUInt16LE(colorOffset + 2);
+  const [r0, g0, b0] = decodeRgb565(c0);
+  const [r1, g1, b1] = decodeRgb565(c1);
+  const r = [r0, r1, 0, 0];
+  const g = [g0, g1, 0, 0];
+  const b = [b0, b1, 0, 0];
+  if (!allowThreeColorAlpha || c0 > c1) {
+    r[2] = Math.floor((2 * r0 + r1) / 3);
+    g[2] = Math.floor((2 * g0 + g1) / 3);
+    b[2] = Math.floor((2 * b0 + b1) / 3);
+    r[3] = Math.floor((r0 + 2 * r1) / 3);
+    g[3] = Math.floor((g0 + 2 * g1) / 3);
+    b[3] = Math.floor((b0 + 2 * b1) / 3);
+    return [r, g, b];
+  }
+  r[2] = Math.floor((r0 + r1) / 2);
+  g[2] = Math.floor((g0 + g1) / 2);
+  b[2] = Math.floor((b0 + b1) / 2);
+  r[3] = 0;
+  g[3] = 0;
+  b[3] = 0;
+  void alphaBitForThreeColor;
+  return [r, g, b];
+}
+function decodePalettedMip0(buf, mipOffset, mipSize, width, height, alphaDepth) {
+  const paletteOffset = BLP2_HEADER_SIZE;
+  if (buf.length < paletteOffset + 1024) {
+    return null;
+  }
+  const pixelCount = width * height;
+  const alphaBytesNeeded = alphaDepth === 0 ? 0 : alphaDepth === 1 ? Math.ceil(pixelCount / 8) : alphaDepth === 4 ? Math.ceil(pixelCount / 2) : alphaDepth === 8 ? pixelCount : -1;
+  if (alphaBytesNeeded < 0 || mipSize < pixelCount + alphaBytesNeeded) {
+    return null;
+  }
+  const rgba = new Uint8Array(pixelCount * 4);
+  const alphaOffset = mipOffset + pixelCount;
+  for (let i = 0; i < pixelCount; i++) {
+    const palIdx = buf[mipOffset + i];
+    const palPos = paletteOffset + palIdx * 4;
+    const dst = i * 4;
+    rgba[dst] = buf[palPos + 2];
+    rgba[dst + 1] = buf[palPos + 1];
+    rgba[dst + 2] = buf[palPos];
+    let alpha = 255;
+    if (alphaDepth === 1) {
+      const byteVal = buf[alphaOffset + (i >> 3)];
+      alpha = (byteVal >> (i & 7) & 1) !== 0 ? 255 : 0;
+    } else if (alphaDepth === 4) {
+      const byteVal = buf[alphaOffset + (i >> 1)];
+      const nibble = (i & 1) === 0 ? byteVal & 15 : byteVal >> 4 & 15;
+      alpha = nibble << 4 | nibble;
+    } else if (alphaDepth === 8) {
+      alpha = buf[alphaOffset + i];
+    }
+    rgba[dst + 3] = alpha;
+  }
+  return rgba;
+}
+function decodeDxtcMip0(buf, mipOffset, mipSize, width, height, alphaDepth, alphaEncoding) {
+  const blocksX = Math.max(1, Math.ceil(width / 4));
+  const blocksY = Math.max(1, Math.ceil(height / 4));
+  const isDxt1 = alphaEncoding === 0;
+  const isDxt3 = alphaEncoding === 1;
+  const isDxt5 = alphaEncoding === 7;
+  if (!isDxt1 && !isDxt3 && !isDxt5) {
+    return null;
+  }
+  const blockSize = isDxt1 ? 8 : 16;
+  if (mipSize < blocksX * blocksY * blockSize) {
+    return null;
+  }
+  const rgba = new Uint8Array(width * height * 4);
+  let blockOffset = mipOffset;
+  for (let by = 0; by < blocksY; by++) {
+    for (let bx = 0; bx < blocksX; bx++) {
+      const colorOffset = isDxt1 ? blockOffset : blockOffset + 8;
+      const c0 = buf.readUInt16LE(colorOffset);
+      const c1 = buf.readUInt16LE(colorOffset + 2);
+      const colorBits = buf.readUInt32LE(colorOffset + 4);
+      const [rPal, gPal, bPal] = decodeColorBlock(buf, colorOffset, isDxt1, alphaDepth);
+      let dxt5Alphas = null;
+      let dxt5Bits = 0n;
+      if (isDxt5) {
+        const a0 = buf[blockOffset];
+        const a1 = buf[blockOffset + 1];
+        dxt5Alphas = [a0, a1, 0, 0, 0, 0, 0, 0];
+        if (a0 > a1) {
+          dxt5Alphas[2] = Math.floor((6 * a0 + 1 * a1) / 7);
+          dxt5Alphas[3] = Math.floor((5 * a0 + 2 * a1) / 7);
+          dxt5Alphas[4] = Math.floor((4 * a0 + 3 * a1) / 7);
+          dxt5Alphas[5] = Math.floor((3 * a0 + 4 * a1) / 7);
+          dxt5Alphas[6] = Math.floor((2 * a0 + 5 * a1) / 7);
+          dxt5Alphas[7] = Math.floor((1 * a0 + 6 * a1) / 7);
+        } else {
+          dxt5Alphas[2] = Math.floor((4 * a0 + 1 * a1) / 5);
+          dxt5Alphas[3] = Math.floor((3 * a0 + 2 * a1) / 5);
+          dxt5Alphas[4] = Math.floor((2 * a0 + 3 * a1) / 5);
+          dxt5Alphas[5] = Math.floor((1 * a0 + 4 * a1) / 5);
+          dxt5Alphas[6] = 0;
+          dxt5Alphas[7] = 255;
+        }
+        dxt5Bits = BigInt(buf[blockOffset + 2]) | BigInt(buf[blockOffset + 3]) << 8n | BigInt(buf[blockOffset + 4]) << 16n | BigInt(buf[blockOffset + 5]) << 24n | BigInt(buf[blockOffset + 6]) << 32n | BigInt(buf[blockOffset + 7]) << 40n;
+      }
+      for (let py = 0; py < 4; py++) {
+        const y = by * 4 + py;
+        if (y >= height) continue;
+        for (let px = 0; px < 4; px++) {
+          const x = bx * 4 + px;
+          if (x >= width) continue;
+          const pixelIdx = py * 4 + px;
+          const code = colorBits >>> pixelIdx * 2 & 3;
+          let alpha = 255;
+          if (isDxt1) {
+            if (c0 <= c1 && code === 3) {
+              alpha = alphaDepth > 0 ? 0 : 255;
+            }
+          } else if (isDxt3) {
+            const alphaByte = buf[blockOffset + (pixelIdx >> 1)];
+            const nibble = (pixelIdx & 1) === 0 ? alphaByte & 15 : alphaByte >> 4 & 15;
+            alpha = nibble << 4 | nibble;
+          } else if (isDxt5 && dxt5Alphas) {
+            const aCode = Number(dxt5Bits >> BigInt(pixelIdx * 3) & 0x07n);
+            alpha = dxt5Alphas[aCode];
+          }
+          const dst = (y * width + x) * 4;
+          rgba[dst] = rPal[code];
+          rgba[dst + 1] = gPal[code];
+          rgba[dst + 2] = bPal[code];
+          rgba[dst + 3] = alpha;
+        }
+      }
+      blockOffset += blockSize;
+    }
+  }
+  return rgba;
+}
+function decodeUncompressedMip0(buf, mipOffset, mipSize, width, height) {
+  const pixelCount = width * height;
+  if (mipSize < pixelCount * 4) {
+    return null;
+  }
+  const rgba = new Uint8Array(pixelCount * 4);
+  for (let i = 0; i < pixelCount; i++) {
+    const src = mipOffset + i * 4;
+    const dst = i * 4;
+    rgba[dst] = buf[src + 2];
+    rgba[dst + 1] = buf[src + 1];
+    rgba[dst + 2] = buf[src];
+    rgba[dst + 3] = buf[src + 3];
+  }
+  return rgba;
+}
+function isBlp2Buffer(buf) {
+  return buf.length >= BLP2_HEADER_SIZE && buf[0] === 66 && // 'B'
+  buf[1] === 76 && // 'L'
+  buf[2] === 80 && // 'P'
+  buf[3] === 50;
+}
+function decodeBlp2ToPng(buf) {
+  if (!isBlp2Buffer(buf)) {
+    return null;
+  }
+  try {
+    const version2 = buf.readUInt32LE(4);
+    if (version2 !== 1) {
+      return null;
+    }
+    const colorEncoding = buf[8];
+    const alphaDepth = buf[9];
+    const alphaEncoding = buf[10];
+    const width = buf.readUInt32LE(12);
+    const height = buf.readUInt32LE(16);
+    if (width === 0 || height === 0 || width > 4096 || height > 4096) {
+      return null;
+    }
+    const mip0Offset = buf.readUInt32LE(20);
+    const mip0Size = buf.readUInt32LE(84);
+    if (mip0Offset < BLP2_HEADER_SIZE || mip0Size === 0 || mip0Offset + mip0Size > buf.length) {
+      return null;
+    }
+    let rgba = null;
+    if (colorEncoding === 1) {
+      rgba = decodePalettedMip0(buf, mip0Offset, mip0Size, width, height, alphaDepth);
+    } else if (colorEncoding === 2) {
+      rgba = decodeDxtcMip0(buf, mip0Offset, mip0Size, width, height, alphaDepth, alphaEncoding);
+    } else if (colorEncoding === 3) {
+      rgba = decodeUncompressedMip0(buf, mip0Offset, mip0Size, width, height);
+    }
+    if (!rgba) {
+      return null;
+    }
+    return encodeRgbaToPng(rgba, width, height);
+  } catch {
+    return null;
+  }
+}
+
+// src/casc-reader.ts
+import { execFile } from "node:child_process";
 import * as fs3 from "node:fs";
 import * as path5 from "node:path";
+import * as zlib2 from "node:zlib";
+var FLAVOR_TO_PRODUCT = Object.freeze({
+  _forever_: "wowf",
+  _retail_: "wow",
+  _classic_: "wow_classic",
+  _classic_era_: "wow_classic_era",
+  _anniversary_: "wow_anniversary",
+  _classic_beta_: "wow_classic_beta"
+});
+var PRODUCT_PRIORITY = [
+  "wowf",
+  "wow",
+  "wow_classic",
+  "wow_classic_era",
+  "wow_anniversary",
+  "wow_classic_beta"
+];
+var LOCALE_ALL = 4294967295;
+var LOCALE_ENUS = 2;
+var LOCALE_DEDE = 32;
+var CONTENT_NO_NAME_HASH = 268435456;
+var CONTENT_INTERLEAVED = 33554432;
+var CONTENT_LOW_VIOLENCE = 128;
+function normalizeWowRootPath(candidatePath) {
+  if (!candidatePath || !candidatePath.trim()) {
+    return null;
+  }
+  let current = path5.resolve(candidatePath.trim().replace(/^"|"$/g, ""));
+  let flavorHint;
+  const segments = current.split(/[\\/]+/).map((s) => s.toLowerCase());
+  for (let i = segments.length - 1; i >= 0; i--) {
+    const product = FLAVOR_TO_PRODUCT[segments[i]];
+    if (product) {
+      flavorHint = product;
+      break;
+    }
+  }
+  try {
+    if (fs3.existsSync(current) && fs3.statSync(current).isFile()) {
+      current = path5.dirname(current);
+    }
+  } catch {
+  }
+  for (let depth = 0; depth < 3; depth++) {
+    try {
+      const buildInfoPath = path5.join(current, ".build.info");
+      const dataPath = path5.join(current, "Data");
+      if (fs3.existsSync(buildInfoPath) && fs3.existsSync(dataPath)) {
+        return { wowRoot: current, flavorHint };
+      }
+    } catch {
+    }
+    const parent = path5.dirname(current);
+    if (parent === current) {
+      break;
+    }
+    current = parent;
+  }
+  return null;
+}
+function execFileAsync(file2, args) {
+  return new Promise((resolve5) => {
+    execFile(file2, args, { windowsHide: true, timeout: 2500 }, (err, stdout) => {
+      if (err || !stdout) {
+        resolve5(null);
+        return;
+      }
+      resolve5(stdout);
+    });
+  });
+}
+async function queryWowRegistryInstallPath() {
+  if (process.platform !== "win32") {
+    return null;
+  }
+  const queries = [
+    ["HKLM\\SOFTWARE\\WOW6432Node\\Blizzard Entertainment\\World of Warcraft", "InstallPath"],
+    ["HKLM\\SOFTWARE\\Blizzard Entertainment\\World of Warcraft", "InstallPath"],
+    ["HKLM\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\World of Warcraft", "InstallLocation"],
+    ["HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\World of Warcraft", "InstallLocation"],
+    ["HKLM\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\World of Warcraft Classic Era", "InstallLocation"],
+    ["HKLM\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Cataclysm Classic", "InstallLocation"]
+  ];
+  for (const [key, valueName] of queries) {
+    const out = await execFileAsync("reg", ["query", key, "/v", valueName]);
+    if (!out) continue;
+    const match = out.match(/(?:InstallPath|InstallLocation)\s+REG_\w+\s+(.+)/i);
+    if (match && match[1]) {
+      return match[1].trim();
+    }
+  }
+  return null;
+}
+function getBucketIndex(key9) {
+  let x = 0;
+  for (let i = 0; i < key9.length; i++) {
+    x ^= key9[i];
+  }
+  return (x >> 4 ^ x) & 15;
+}
+function parseBuildInfo(content) {
+  const lines = content.split(/\r?\n/).filter((l) => l.trim().length > 0);
+  if (lines.length < 2) {
+    return [];
+  }
+  const headers = lines[0].split("|").map((h) => h.split("!")[0].trim());
+  const activeCol = headers.indexOf("Active");
+  const buildKeyCol = headers.indexOf("Build Key");
+  const productCol = headers.indexOf("Product");
+  if (activeCol < 0 || buildKeyCol < 0 || productCol < 0) {
+    return [];
+  }
+  const entries = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split("|");
+    const active = (cols[activeCol] ?? "").trim();
+    const buildKey = (cols[buildKeyCol] ?? "").trim().toLowerCase();
+    const product = (cols[productCol] ?? "").trim().toLowerCase();
+    if (active === "1" && /^[0-9a-f]{32}$/.test(buildKey) && product.length > 0) {
+      entries.push({ product, buildKey });
+    }
+  }
+  return entries;
+}
+function parseBuildConfig(content) {
+  let rootCKey;
+  let encodingEKey;
+  for (const rawLine of content.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+    const eqIdx = line.indexOf("=");
+    if (eqIdx < 0) continue;
+    const key = line.slice(0, eqIdx).trim();
+    const tokens = line.slice(eqIdx + 1).trim().split(/\s+/);
+    if (key === "root" && tokens[0] && /^[0-9a-f]{32}$/i.test(tokens[0])) {
+      rootCKey = tokens[0].toLowerCase();
+    } else if (key === "encoding" && tokens.length > 0) {
+      const ekey = tokens[1] ?? tokens[0];
+      if (/^[0-9a-f]{32}$/i.test(ekey)) {
+        encodingEKey = ekey.toLowerCase();
+      }
+    }
+  }
+  return { rootCKey, encodingEKey };
+}
+function parseIdxBuckets(dataDir) {
+  const entries = fs3.readdirSync(dataDir);
+  const latestByBucket = /* @__PURE__ */ new Map();
+  for (const name of entries) {
+    if (!/^[0-9a-f]{10}\.idx$/i.test(name)) continue;
+    const bucket = Number.parseInt(name.slice(0, 2), 16);
+    const version2 = Number.parseInt(name.slice(2, 10), 16);
+    const current = latestByBucket.get(bucket);
+    if (!current || version2 > current.version) {
+      latestByBucket.set(bucket, { fileName: name, version: version2 });
+    }
+  }
+  const buckets = new Array(16);
+  for (const [bucket, info] of latestByBucket.entries()) {
+    const buf = fs3.readFileSync(path5.join(dataDir, info.fileName));
+    if (buf.length < 40) continue;
+    const hdrHashSize = buf.readUInt32LE(0);
+    const sizeBytes = buf[12];
+    const offsetBytes = buf[13];
+    const keyBytes = buf[14];
+    const offsetBits = buf[15];
+    const entriesOff = 8 + hdrHashSize + 15 & ~15;
+    if (entriesOff + 8 > buf.length) continue;
+    const entriesSize = buf.readUInt32LE(entriesOff);
+    const entryLen = keyBytes + offsetBytes + sizeBytes;
+    if (entryLen <= 0) continue;
+    const dataStart = entriesOff + 8;
+    const maxAvailable = Math.max(0, buf.length - dataStart);
+    const count = Math.floor(Math.min(entriesSize, maxAvailable) / entryLen);
+    let sorted = true;
+    const sampleLimit = Math.min(count, 512);
+    for (let i = 1; i < sampleLimit; i++) {
+      const prevOff = dataStart + (i - 1) * entryLen;
+      const curOff = dataStart + i * entryLen;
+      if (Buffer.compare(buf.subarray(prevOff, prevOff + keyBytes), buf.subarray(curOff, curOff + keyBytes)) > 0) {
+        sorted = false;
+        break;
+      }
+    }
+    buckets[bucket] = {
+      buf,
+      dataStart,
+      count,
+      entryLen,
+      keyBytes,
+      offsetBytes,
+      sizeBytes,
+      offsetBits,
+      sorted
+    };
+  }
+  return buckets;
+}
+function decodeIdxEntry(bucket, entryOffset) {
+  let combined = 0n;
+  const offStart = entryOffset + bucket.keyBytes;
+  for (let i = 0; i < bucket.offsetBytes; i++) {
+    combined = combined << 8n | BigInt(bucket.buf[offStart + i]);
+  }
+  const archive = Number(combined >> BigInt(bucket.offsetBits));
+  const offset = Number(combined & (1n << BigInt(bucket.offsetBits)) - 1n);
+  let size = 0;
+  const sizeStart = offStart + bucket.offsetBytes;
+  for (let i = 0; i < bucket.sizeBytes; i++) {
+    size |= bucket.buf[sizeStart + i] << i * 8;
+  }
+  return { archive, offset, size: size >>> 0 };
+}
+function lookupIdxBucket(buckets, ekey) {
+  const keyPrefix = ekey.subarray(0, 9);
+  const bucket = buckets[getBucketIndex(keyPrefix)];
+  if (!bucket || bucket.count === 0) {
+    return null;
+  }
+  const keySlice = ekey.subarray(0, bucket.keyBytes);
+  if (bucket.sorted) {
+    let lo = 0;
+    let hi = bucket.count - 1;
+    while (lo <= hi) {
+      const mid = lo + hi >> 1;
+      const off = bucket.dataStart + mid * bucket.entryLen;
+      const cmp = Buffer.compare(bucket.buf.subarray(off, off + bucket.keyBytes), keySlice);
+      if (cmp === 0) {
+        return decodeIdxEntry(bucket, off);
+      }
+      if (cmp < 0) {
+        lo = mid + 1;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    return null;
+  }
+  for (let i = 0; i < bucket.count; i++) {
+    const off = bucket.dataStart + i * bucket.entryLen;
+    if (bucket.buf.subarray(off, off + bucket.keyBytes).equals(keySlice)) {
+      return decodeIdxEntry(bucket, off);
+    }
+  }
+  return null;
+}
+function decompressBlte(raw) {
+  let blteOff = -1;
+  if (raw.length >= 38 && raw[30] === 66 && raw[31] === 76 && raw[32] === 84 && raw[33] === 69) {
+    blteOff = 30;
+  } else if (raw.length >= 8 && raw[0] === 66 && raw[1] === 76 && raw[2] === 84 && raw[3] === 69) {
+    blteOff = 0;
+  }
+  if (blteOff < 0) {
+    return null;
+  }
+  const headerSize = raw.readUInt32BE(blteOff + 4);
+  if (headerSize === 0) {
+    const chunk = raw.subarray(blteOff + 8);
+    if (chunk.length === 0) return null;
+    if (chunk[0] === 78) return Buffer.from(chunk.subarray(1));
+    if (chunk[0] === 90) return zlib2.inflateSync(chunk.subarray(1));
+    return null;
+  }
+  if (blteOff + headerSize > raw.length || headerSize < 12) {
+    return null;
+  }
+  const chunkCount = raw[blteOff + 9] << 16 | raw[blteOff + 10] << 8 | raw[blteOff + 11];
+  if (blteOff + 12 + chunkCount * 24 > blteOff + headerSize) {
+    return null;
+  }
+  let dataPos = blteOff + headerSize;
+  const parts = [];
+  for (let i = 0; i < chunkCount; i++) {
+    const metaPos = blteOff + 12 + i * 24;
+    const compSize = raw.readUInt32BE(metaPos);
+    if (compSize === 0 || dataPos + compSize > raw.length) {
+      return null;
+    }
+    const chunk = raw.subarray(dataPos, dataPos + compSize);
+    dataPos += compSize;
+    const mode = chunk[0];
+    if (mode === 78) {
+      parts.push(chunk.subarray(1));
+    } else if (mode === 90) {
+      parts.push(zlib2.inflateSync(chunk.subarray(1)));
+    } else {
+      return null;
+    }
+  }
+  return parts.length === 1 ? Buffer.from(parts[0]) : Buffer.concat(parts);
+}
+function parseEncodingTable(buf) {
+  if (buf.length < 22 || buf[0] !== 69 || buf[1] !== 78) {
+    return null;
+  }
+  const ckeyLen = buf[3];
+  const ekeyLen = buf[4];
+  const cPageSize = buf.readUInt16BE(5) * 1024;
+  const cPageCount = buf.readUInt32BE(9);
+  const especSize = buf.readUInt32BE(18);
+  const indexStart = 22 + especSize;
+  const pagesStart = indexStart + cPageCount * (ckeyLen + 16);
+  const cSectionEnd = pagesStart + cPageCount * cPageSize;
+  if (ckeyLen === 0 || ekeyLen === 0 || cPageSize === 0 || cSectionEnd > buf.length) {
+    return null;
+  }
+  const slice = Buffer.from(buf.subarray(0, cSectionEnd));
+  return {
+    buf: slice,
+    ckeyLen,
+    ekeyLen,
+    cPageSize,
+    cPageCount,
+    indexStart,
+    pagesStart
+  };
+}
+function lookupEncodingEKey(table, ckey) {
+  if (ckey.length !== table.ckeyLen || table.cPageCount === 0) {
+    return null;
+  }
+  const indexEntryLen = table.ckeyLen + 16;
+  let lo = 0;
+  let hi = table.cPageCount - 1;
+  let pageIdx = -1;
+  while (lo <= hi) {
+    const mid = lo + hi >> 1;
+    const off = table.indexStart + mid * indexEntryLen;
+    const cmp = Buffer.compare(table.buf.subarray(off, off + table.ckeyLen), ckey);
+    if (cmp <= 0) {
+      pageIdx = mid;
+      lo = mid + 1;
+    } else {
+      hi = mid - 1;
+    }
+  }
+  if (pageIdx < 0) {
+    return null;
+  }
+  let pos = table.pagesStart + pageIdx * table.cPageSize;
+  const pageEnd = pos + table.cPageSize;
+  while (pos + 6 + table.ckeyLen <= pageEnd) {
+    const keyCount = table.buf[pos];
+    if (keyCount === 0) break;
+    const entryCKey = table.buf.subarray(pos + 6, pos + 6 + table.ckeyLen);
+    const cmp = Buffer.compare(entryCKey, ckey);
+    if (cmp === 0) {
+      if (pos + 6 + table.ckeyLen + table.ekeyLen > pageEnd) {
+        return null;
+      }
+      return table.buf.subarray(pos + 6 + table.ckeyLen, pos + 6 + table.ckeyLen + table.ekeyLen);
+    }
+    if (cmp > 0) {
+      break;
+    }
+    pos += 6 + table.ckeyLen + keyCount * table.ekeyLen;
+  }
+  return null;
+}
+function parseRootBlocks(rootBuf) {
+  if (rootBuf.length < 16) {
+    return [];
+  }
+  let pos = 0;
+  let isV2 = false;
+  const hasTsfm = rootBuf[0] === 84 && // 'T'
+  rootBuf[1] === 83 && // 'S'
+  rootBuf[2] === 70 && // 'F'
+  rootBuf[3] === 77;
+  if (hasTsfm) {
+    const headerSize = rootBuf.readUInt32LE(4);
+    const version2 = rootBuf.readUInt32LE(8);
+    if (headerSize < 12 || headerSize > rootBuf.length) {
+      return [];
+    }
+    pos = headerSize;
+    isV2 = version2 >= 2;
+  }
+  const blocks = [];
+  const blockHeaderSize = isV2 ? 17 : 12;
+  while (pos + blockHeaderSize <= rootBuf.length) {
+    const numRecords = rootBuf.readUInt32LE(pos);
+    let localeFlags = 0;
+    let contentFlags = 0;
+    if (isV2) {
+      localeFlags = rootBuf.readUInt32LE(pos + 4);
+      const unk1 = rootBuf.readUInt32LE(pos + 8);
+      const unk2 = rootBuf.readUInt32LE(pos + 12);
+      const unk3 = rootBuf[pos + 16];
+      contentFlags = (unk1 | unk2 | unk3 << 17) >>> 0;
+    } else {
+      contentFlags = rootBuf.readUInt32LE(pos + 4);
+      localeFlags = rootBuf.readUInt32LE(pos + 8);
+    }
+    pos += blockHeaderSize;
+    const noNameHash = (contentFlags & CONTENT_NO_NAME_HASH) !== 0;
+    const interleaved = !isV2 && (contentFlags & CONTENT_INTERLEAVED) !== 0;
+    const fdidStart = pos;
+    const recordBytes = numRecords * (4 + 16 + (noNameHash ? 0 : 8));
+    if (numRecords === 0 || pos + recordBytes > rootBuf.length) {
+      break;
+    }
+    let minFdid = 0;
+    let maxFdid = 0;
+    let fdid = 0;
+    for (let i = 0; i < numRecords; i++) {
+      const delta = rootBuf.readInt32LE(fdidStart + i * 4);
+      fdid = i === 0 ? delta : fdid + 1 + delta;
+      if (i === 0) minFdid = fdid;
+      maxFdid = fdid;
+    }
+    const ckeyStart = fdidStart + numRecords * 4;
+    blocks.push({
+      minFdid,
+      maxFdid,
+      numRecords,
+      fdidStart,
+      ckeyStart,
+      localeFlags: localeFlags >>> 0,
+      contentFlags,
+      interleaved
+    });
+    pos += recordBytes;
+  }
+  return blocks;
+}
+function scoreRootBlock(block) {
+  let score = 0;
+  if ((block.contentFlags & CONTENT_LOW_VIOLENCE) === 0) score += 100;
+  if ((block.localeFlags & LOCALE_ENUS) !== 0) score += 20;
+  if ((block.localeFlags & LOCALE_DEDE) !== 0) score += 15;
+  if (block.localeFlags === LOCALE_ALL) score += 10;
+  return score;
+}
+function lookupRootCKey(rootBuf, blocks, targetFdid) {
+  let bestCKey = null;
+  let bestScore = -1;
+  for (const block of blocks) {
+    if (targetFdid < block.minFdid || targetFdid > block.maxFdid) {
+      continue;
+    }
+    const score = scoreRootBlock(block);
+    if (bestCKey && score <= bestScore) {
+      continue;
+    }
+    let fdid = 0;
+    for (let i = 0; i < block.numRecords; i++) {
+      const delta = rootBuf.readInt32LE(block.fdidStart + i * 4);
+      fdid = i === 0 ? delta : fdid + 1 + delta;
+      if (fdid === targetFdid) {
+        const ckeyOffset = block.ckeyStart + i * (block.interleaved ? 24 : 16);
+        bestCKey = rootBuf.subarray(ckeyOffset, ckeyOffset + 16);
+        bestScore = score;
+        break;
+      }
+      if (fdid > targetFdid) {
+        break;
+      }
+    }
+  }
+  return bestCKey;
+}
+var LocalCascReader = class {
+  wowInstallPath;
+  resolveWowInstallInfo;
+  logger;
+  initPromise = null;
+  wowRoot = null;
+  dataDir = null;
+  orderedProducts = [];
+  loadedProductIndex = 0;
+  idxBuckets = [];
+  loadedProducts = [];
+  constructor(options) {
+    this.wowInstallPath = options?.wowInstallPath;
+    this.resolveWowInstallInfo = options?.resolveWowInstallInfo;
+    this.logger = options?.logger;
+  }
+  async resolveInstallRoot() {
+    if (this.wowInstallPath) {
+      const explicit = normalizeWowRootPath(this.wowInstallPath);
+      if (explicit) return explicit;
+    }
+    if (this.resolveWowInstallInfo) {
+      try {
+        const info = await this.resolveWowInstallInfo();
+        if (info?.wowRoot) {
+          const fromHelper = normalizeWowRootPath(info.exePath ?? info.wowRoot) ?? normalizeWowRootPath(info.wowRoot);
+          if (fromHelper) return fromHelper;
+        }
+      } catch {
+      }
+    }
+    const regPath = await queryWowRegistryInstallPath();
+    if (regPath) {
+      return normalizeWowRootPath(regPath);
+    }
+    return null;
+  }
+  readArchiveRange(archive, offset, size) {
+    if (!this.dataDir || size <= 0) {
+      return null;
+    }
+    const archivePath = path5.join(this.dataDir, `data.${String(archive).padStart(3, "0")}`);
+    let fd = -1;
+    try {
+      fd = fs3.openSync(archivePath, "r");
+      const buf = Buffer.allocUnsafe(size);
+      const bytesRead = fs3.readSync(fd, buf, 0, size, offset);
+      if (bytesRead < size) {
+        return null;
+      }
+      return buf;
+    } catch {
+      return null;
+    } finally {
+      if (fd >= 0) {
+        try {
+          fs3.closeSync(fd);
+        } catch {
+        }
+      }
+    }
+  }
+  readBlteByEKey(ekey) {
+    const loc = lookupIdxBucket(this.idxBuckets, ekey);
+    if (!loc) {
+      return null;
+    }
+    const raw = this.readArchiveRange(loc.archive, loc.offset, loc.size);
+    if (!raw) {
+      return null;
+    }
+    return decompressBlte(raw);
+  }
+  loadProduct(entry) {
+    if (!this.wowRoot) return null;
+    const cfgPath = path5.join(
+      this.wowRoot,
+      "Data",
+      "config",
+      entry.buildKey.slice(0, 2),
+      entry.buildKey.slice(2, 4),
+      entry.buildKey
+    );
+    if (!fs3.existsSync(cfgPath)) {
+      return null;
+    }
+    const { rootCKey, encodingEKey } = parseBuildConfig(fs3.readFileSync(cfgPath, "utf8"));
+    if (!rootCKey || !encodingEKey) {
+      return null;
+    }
+    const encRaw = this.readBlteByEKey(Buffer.from(encodingEKey, "hex"));
+    if (!encRaw) return null;
+    const encoding = parseEncodingTable(encRaw);
+    if (!encoding) return null;
+    const rootEKey = lookupEncodingEKey(encoding, Buffer.from(rootCKey, "hex"));
+    if (!rootEKey) return null;
+    const rootBuf = this.readBlteByEKey(rootEKey);
+    if (!rootBuf) return null;
+    const blocks = parseRootBlocks(rootBuf);
+    if (blocks.length === 0) return null;
+    return {
+      product: entry.product,
+      encoding,
+      rootBuf,
+      blocks
+    };
+  }
+  ensureInitialized() {
+    if (!this.initPromise) {
+      this.initPromise = this.initializeInternal();
+    }
+    return this.initPromise;
+  }
+  async initializeInternal() {
+    try {
+      const resolved = await this.resolveInstallRoot();
+      if (!resolved) {
+        this.logger?.warn("[CASC] Could not locate local World of Warcraft installation; Stage 1 disabled");
+        return false;
+      }
+      const { wowRoot, flavorHint } = resolved;
+      const buildInfoPath = path5.join(wowRoot, ".build.info");
+      const dataDir = path5.join(wowRoot, "Data", "data");
+      if (!fs3.existsSync(buildInfoPath) || !fs3.existsSync(dataDir)) {
+        this.logger?.warn(`[CASC] Incomplete CASC layout under ${wowRoot}; Stage 1 disabled`);
+        return false;
+      }
+      const buildEntries = parseBuildInfo(fs3.readFileSync(buildInfoPath, "utf8"));
+      if (buildEntries.length === 0) {
+        this.logger?.warn(`[CASC] No active products found in ${buildInfoPath}; Stage 1 disabled`);
+        return false;
+      }
+      const priorityList = flavorHint ? [flavorHint, ...PRODUCT_PRIORITY.filter((p) => p !== flavorHint)] : PRODUCT_PRIORITY;
+      this.orderedProducts = [...buildEntries].sort((a, b) => {
+        const idxA = priorityList.indexOf(a.product);
+        const idxB = priorityList.indexOf(b.product);
+        const scoreA = idxA >= 0 ? idxA : 999;
+        const scoreB = idxB >= 0 ? idxB : 999;
+        return scoreA - scoreB;
+      });
+      this.wowRoot = wowRoot;
+      this.dataDir = dataDir;
+      this.idxBuckets = parseIdxBuckets(dataDir);
+      while (this.loadedProductIndex < this.orderedProducts.length) {
+        const entry = this.orderedProducts[this.loadedProductIndex++];
+        const loaded = this.loadProduct(entry);
+        if (loaded) {
+          this.loadedProducts.push(loaded);
+          this.logger?.info?.(
+            `[CASC] Stage 1 initialized (root=${wowRoot}, primary=${loaded.product}, rootBlocks=${loaded.blocks.length})`
+          );
+          return true;
+        }
+      }
+      this.logger?.warn(`[CASC] Failed to load encoding/root for active products under ${wowRoot}`);
+      return false;
+    } catch (err) {
+      const msg = err instanceof Error ? `${err.name}:${err.message}` : String(err);
+      this.logger?.warn(`[CASC] Stage 1 initialization failed cleanly (${msg}); falling back to Stage 2/3`);
+      return false;
+    }
+  }
+  /**
+   * Reads raw file bytes (e.g., BLP2 texture) for a WoW FileDataID from local CASC storage.
+   */
+  async readFileByDataId(fileDataId) {
+    if (!fileDataId || fileDataId <= 0) {
+      return null;
+    }
+    const ready = await this.ensureInitialized();
+    if (!ready) {
+      return null;
+    }
+    const readFromLoaded = (prod) => {
+      const ckey = lookupRootCKey(prod.rootBuf, prod.blocks, fileDataId);
+      if (!ckey) return null;
+      const ekey = lookupEncodingEKey(prod.encoding, ckey);
+      if (!ekey) return null;
+      return this.readBlteByEKey(ekey);
+    };
+    for (const prod of this.loadedProducts) {
+      const result = readFromLoaded(prod);
+      if (result) return result;
+    }
+    while (this.loadedProductIndex < this.orderedProducts.length) {
+      const entry = this.orderedProducts[this.loadedProductIndex++];
+      const loaded = this.loadProduct(entry);
+      if (loaded) {
+        this.loadedProducts.push(loaded);
+        const result = readFromLoaded(loaded);
+        if (result) return result;
+      }
+    }
+    return null;
+  }
+};
+
+// src/icon-renderer.ts
 var KNOWN_ICON_NAMES = Object.freeze({
   132152: "ability_ghoulfrenzy",
   // PET_ACTION_ATTACK
@@ -17374,31 +18302,136 @@ var FALLBACK_FILEDATA_IDS = Object.freeze({
   457329: 132294
   // PET_ACTION_MOVE_TO -> classic fallback
 });
+var NEGATIVE_CACHE_TTL_MS = 60 * 60 * 1e3;
+var CIRCUIT_BREAKER_COOLDOWN_MS = 30 * 60 * 1e3;
+var FETCH_TIMEOUT_MS = 5e3;
+var MIN_REQUEST_INTERVAL_MS = 300;
 var IconResolverAndRenderer = class {
   cacheDir;
   memoryCache = /* @__PURE__ */ new Map();
   // fileDataId -> data URI
   pendingFetches = /* @__PURE__ */ new Map();
+  failedFetches = /* @__PURE__ */ new Map();
+  // fileDataId -> negative-cache expiry timestamp (ms)
+  blockedHosts = /* @__PURE__ */ new Map();
+  // hostname -> circuit-breaker expiry timestamp (ms)
+  iconNameMap;
+  minRequestIntervalMs;
+  fetchTimeoutMs;
+  negativeCacheTtlMs;
+  circuitBreakerCooldownMs;
+  cascReader;
+  logger;
+  requestQueueTail = Promise.resolve();
+  lastNetworkRequestEndMs = 0;
   slotMaxCooldown = /* @__PURE__ */ new Map();
   // slot -> max observed cooldown seconds
   slotCooldownTrackers = /* @__PURE__ */ new Map();
   // slot -> sub-second millisecond tracker
-  constructor(cacheDir) {
-    this.cacheDir = cacheDir ?? path5.resolve(process.cwd(), "cache", "icons");
+  constructor(cacheDirOrOptions) {
+    const opts = typeof cacheDirOrOptions === "string" ? { cacheDir: cacheDirOrOptions } : cacheDirOrOptions ?? {};
+    this.cacheDir = opts.cacheDir ?? path6.resolve(process.cwd(), "cache", "icons");
+    this.minRequestIntervalMs = opts.minRequestIntervalMs ?? MIN_REQUEST_INTERVAL_MS;
+    this.fetchTimeoutMs = opts.fetchTimeoutMs ?? FETCH_TIMEOUT_MS;
+    this.negativeCacheTtlMs = opts.negativeCacheTtlMs ?? NEGATIVE_CACHE_TTL_MS;
+    this.circuitBreakerCooldownMs = opts.circuitBreakerCooldownMs ?? CIRCUIT_BREAKER_COOLDOWN_MS;
+    this.logger = opts.logger;
+    if (opts.cascReader !== void 0) {
+      this.cascReader = opts.cascReader;
+    } else if (opts.enableLocalCasc === false) {
+      this.cascReader = null;
+    } else {
+      this.cascReader = new LocalCascReader({
+        wowInstallPath: opts.wowInstallPath,
+        resolveWowInstallInfo: opts.resolveWowInstallInfo,
+        logger: opts.logger
+      });
+    }
+    this.iconNameMap = this.loadIconNameMap(opts.iconMapPath);
     try {
-      fs3.mkdirSync(this.cacheDir, { recursive: true });
+      fs4.mkdirSync(this.cacheDir, { recursive: true });
     } catch {
     }
   }
+  loadIconNameMap(customPath) {
+    const merged = { ...KNOWN_ICON_NAMES };
+    const candidatePaths = customPath ? [customPath] : [
+      path6.resolve(this.cacheDir, "..", "..", "assets", "icon-map.json"),
+      path6.resolve(process.cwd(), "assets", "icon-map.json"),
+      path6.resolve(this.cacheDir, "..", "..", "icon-map.json"),
+      path6.resolve(process.cwd(), "icon-map.json")
+    ];
+    let loadedFromPath = null;
+    let loadedCount = 0;
+    for (const mapPath of candidatePaths) {
+      try {
+        if (!fs4.existsSync(mapPath)) continue;
+        const parsed = JSON.parse(fs4.readFileSync(mapPath, "utf8"));
+        for (const [key, value] of Object.entries(parsed)) {
+          const numericId = Number(key);
+          if (Number.isFinite(numericId) && numericId > 0 && typeof value === "string" && value.trim()) {
+            merged[numericId] = value.trim().toLowerCase();
+            loadedCount++;
+          }
+        }
+        loadedFromPath = mapPath;
+        break;
+      } catch {
+      }
+    }
+    if (loadedFromPath) {
+      const msg = `[IconFetcher] Loaded ${loadedCount} icon mappings from ${loadedFromPath}`;
+      if (this.logger?.info) {
+        this.logger.info(msg);
+      }
+    } else {
+      this.logger?.warn(
+        `[IconFetcher] No external icon-map.json found; using ${Object.keys(KNOWN_ICON_NAMES).length} built-in mappings`
+      );
+    }
+    return Object.freeze(merged);
+  }
   getCacheFilePath(fileDataId) {
-    return path5.join(this.cacheDir, `${fileDataId}.png`);
+    return path6.join(this.cacheDir, `${fileDataId}.png`);
   }
   hasIconInMemory(fileDataId) {
     return this.memoryCache.has(fileDataId);
   }
+  isNegativelyCached(fileDataId) {
+    const expiresAt = this.failedFetches.get(fileDataId);
+    if (expiresAt === void 0) {
+      return false;
+    }
+    if (Date.now() >= expiresAt) {
+      this.failedFetches.delete(fileDataId);
+      return false;
+    }
+    return true;
+  }
+  isHostBlocked(host) {
+    const normalized = host.toLowerCase();
+    const blockedUntil = this.blockedHosts.get(normalized);
+    if (blockedUntil === void 0) {
+      return false;
+    }
+    if (Date.now() >= blockedUntil) {
+      this.blockedHosts.delete(normalized);
+      return false;
+    }
+    return true;
+  }
+  canAttemptResolve(fileDataId) {
+    if (!fileDataId || fileDataId <= 0) {
+      return false;
+    }
+    if (this.memoryCache.has(fileDataId) || this.pendingFetches.has(fileDataId)) {
+      return false;
+    }
+    return !this.isNegativelyCached(fileDataId);
+  }
   /**
    * Resolves a FileDataID to a Base64 image data URI, reading from disk cache
-   * `/cache/icons/{fileDataId}.png` or downloading from Wowhead / Blizzard Render / Wago CDN.
+   * `/cache/icons/{fileDataId}.png` or downloading from static CDNs / Wago Tools CASC API.
    */
   async resolveIconDataUri(fileDataId) {
     if (!fileDataId || fileDataId <= 0) {
@@ -17408,10 +18441,13 @@ var IconResolverAndRenderer = class {
     if (mem) {
       return mem;
     }
+    if (this.isNegativelyCached(fileDataId)) {
+      return null;
+    }
     const diskPath = this.getCacheFilePath(fileDataId);
-    if (fs3.existsSync(diskPath)) {
+    if (fs4.existsSync(diskPath)) {
       try {
-        const bytes = await fs3.promises.readFile(diskPath);
+        const bytes = await fs4.promises.readFile(diskPath);
         if (bytes.length > 64) {
           const mime = this.detectMimeType(bytes);
           const dataUri = `data:${mime};base64,${bytes.toString("base64")}`;
@@ -17425,11 +18461,40 @@ var IconResolverAndRenderer = class {
     if (existingPromise) {
       return existingPromise;
     }
-    const fetchPromise = this.fetchAndCacheRemoteIcon(fileDataId, diskPath).finally(() => {
+    const fetchPromise = this.fetchAndCacheRemoteIcon(fileDataId, diskPath).then((dataUri) => {
+      if (dataUri) {
+        this.failedFetches.delete(fileDataId);
+      } else {
+        this.recordNegativeCache(fileDataId);
+      }
+      return dataUri;
+    }).catch(() => {
+      this.recordNegativeCache(fileDataId);
+      return null;
+    }).finally(() => {
       this.pendingFetches.delete(fileDataId);
     });
     this.pendingFetches.set(fileDataId, fetchPromise);
     return fetchPromise;
+  }
+  recordNegativeCache(fileDataId) {
+    const ttlMinutes = Math.round(this.negativeCacheTtlMs / 6e4);
+    this.failedFetches.set(fileDataId, Date.now() + this.negativeCacheTtlMs);
+    this.logger?.warn(
+      `[IconFetcher] Negative-caching fileDataId=${fileDataId} for ${ttlMinutes}m after all sources failed`
+    );
+  }
+  formatError(err) {
+    if (err instanceof Error) {
+      const base = `${err.name}:${err.message}`;
+      const errWithCause = err;
+      if (errWithCause.cause !== void 0) {
+        const causeStr = errWithCause.cause instanceof Error ? `${errWithCause.cause.name}:${errWithCause.cause.message}` : String(errWithCause.cause);
+        return `${base} (cause: ${causeStr})`;
+      }
+      return base;
+    }
+    return String(err);
   }
   detectMimeType(buf) {
     if (buf.length >= 4 && buf[0] === 137 && buf[1] === 80 && buf[2] === 78 && buf[3] === 71) {
@@ -17440,75 +18505,153 @@ var IconResolverAndRenderer = class {
     }
     return "image/png";
   }
-  async tryDownloadImageBytes(url2) {
-    try {
-      const res = await fetch(url2, {
-        headers: {
-          "User-Agent": "WoWDeck-StreamDeck-Plugin/1.1"
+  enqueueNetworkRequest(task) {
+    const run = async () => {
+      if (this.minRequestIntervalMs > 0 && this.lastNetworkRequestEndMs > 0) {
+        const elapsed = Date.now() - this.lastNetworkRequestEndMs;
+        const remaining = this.minRequestIntervalMs - elapsed;
+        if (remaining > 0) {
+          await new Promise((resolve5) => setTimeout(resolve5, remaining));
         }
-      });
-      if (!res.ok) return null;
-      const arrayBuf = await res.arrayBuffer();
-      const buf = Buffer.from(arrayBuf);
-      if (buf.length > 64 && this.IsValidImageBuffer(buf)) {
-        return buf;
       }
+      try {
+        return await task();
+      } finally {
+        this.lastNetworkRequestEndMs = Date.now();
+      }
+    };
+    const resultPromise = this.requestQueueTail.then(run, run);
+    this.requestQueueTail = resultPromise.then(
+      () => void 0,
+      () => void 0
+    );
+    return resultPromise;
+  }
+  async tryDownloadImageBytes(url2) {
+    let hostname2;
+    try {
+      hostname2 = new URL(url2).hostname.toLowerCase();
     } catch {
+      return null;
     }
-    return null;
+    if (this.isHostBlocked(hostname2)) {
+      return null;
+    }
+    return this.enqueueNetworkRequest(async () => {
+      if (this.isHostBlocked(hostname2)) {
+        return null;
+      }
+      try {
+        const res = await fetch(url2, {
+          headers: {
+            Accept: "image/png,image/jpeg,image/*;q=0.8"
+          },
+          signal: AbortSignal.timeout(this.fetchTimeoutMs)
+        });
+        const contentType = res.headers.get("content-type") ?? "none";
+        if (res.status === 403 || res.status === 429 || res.status === 503) {
+          const cooldownMinutes = Math.round(this.circuitBreakerCooldownMs / 6e4);
+          this.blockedHosts.set(hostname2, Date.now() + this.circuitBreakerCooldownMs);
+          this.logger?.warn(
+            `[IconFetcher] Circuit breaker triggered host=${hostname2} url=${url2} status=${res.status} content-type=${contentType} cooldown=${cooldownMinutes}m`
+          );
+          return null;
+        }
+        if (!res.ok) {
+          this.logger?.warn(
+            `[IconFetcher] HTTP error url=${url2} status=${res.status} content-type=${contentType}`
+          );
+          return null;
+        }
+        const arrayBuf = await res.arrayBuffer();
+        const buf = Buffer.from(arrayBuf);
+        if (buf.length > 64 && this.IsValidImageBuffer(buf)) {
+          return buf;
+        }
+        if (isBlp2Buffer(buf)) {
+          const converted = decodeBlp2ToPng(buf);
+          if (converted) {
+            return converted;
+          }
+          this.logger?.warn(
+            `[IconFetcher] BLP2 decode failed url=${url2} status=${res.status} content-type=${contentType} length=${buf.length}`
+          );
+          return null;
+        }
+        const hexPrefix = buf.subarray(0, 8).toString("hex");
+        this.logger?.warn(
+          `[IconFetcher] Invalid image buffer url=${url2} status=${res.status} content-type=${contentType} length=${buf.length} hex=${hexPrefix}`
+        );
+      } catch (err) {
+        this.logger?.error(
+          `[IconFetcher] Fetch failed url=${url2} error=${this.formatError(err)}`
+        );
+      }
+      return null;
+    });
   }
   IsValidImageBuffer(buf) {
     const isPng = buf.length >= 4 && buf[0] === 137 && buf[1] === 80 && buf[2] === 78 && buf[3] === 71;
     const isJpg = buf.length >= 3 && buf[0] === 255 && buf[1] === 216 && buf[2] === 255;
     return isPng || isJpg;
   }
-  async resolveIconNameFromWowhead(fileDataId) {
-    const known = KNOWN_ICON_NAMES[fileDataId];
-    if (known) return known;
-    const urls = [
-      `https://www.wowhead.com/icon=${fileDataId}`,
-      `https://www.wowhead.com/classic/icon=${fileDataId}`
-    ];
-    for (const pageUrl of urls) {
+  async fetchBufferForFileDataId(fileDataId) {
+    if (this.cascReader) {
       try {
-        const res = await fetch(pageUrl, {
-          headers: {
-            "User-Agent": "WoWDeck-StreamDeck-Plugin/1.1"
+        const rawCasc = await this.cascReader.readFileByDataId(fileDataId);
+        if (rawCasc) {
+          if (isBlp2Buffer(rawCasc)) {
+            const decodedPng = decodeBlp2ToPng(rawCasc);
+            if (decodedPng) {
+              this.logger?.info?.(
+                `[IconFetcher] Resolved fileDataId=${fileDataId} via Stage 1 (Local CASC BLP2->PNG)`
+              );
+              return decodedPng;
+            }
+            this.logger?.warn(
+              `[IconFetcher] Stage 1 BLP2 decode failed for fileDataId=${fileDataId}; falling back to Stage 2`
+            );
+          } else if (rawCasc.length > 64 && this.IsValidImageBuffer(rawCasc)) {
+            this.logger?.info?.(
+              `[IconFetcher] Resolved fileDataId=${fileDataId} via Stage 1 (Local CASC image)`
+            );
+            return rawCasc;
+          } else {
+            this.logger?.warn(
+              `[IconFetcher] Stage 1 returned unsupported buffer for fileDataId=${fileDataId} (len=${rawCasc.length}); falling back to Stage 2`
+            );
           }
-        });
-        if (!res.ok) continue;
-        const html = await res.text();
-        const match = html.match(
-          /https:\/\/wow\.zamimg\.com\/images\/wow\/icons\/large\/([^"'\s>/.]+)\.(?:jpg|png)/i
-        );
-        if (match && match[1]) {
-          return match[1].toLowerCase();
         }
-      } catch {
+      } catch (err) {
+        this.logger?.warn(
+          `[IconFetcher] Stage 1 failed for fileDataId=${fileDataId} (${this.formatError(err)}); falling back to Stage 2`
+        );
       }
     }
-    return null;
-  }
-  async fetchBufferForFileDataId(fileDataId) {
-    const iconName = await this.resolveIconNameFromWowhead(fileDataId);
+    const iconName = this.iconNameMap[fileDataId];
     if (iconName) {
       const candidateImageUrls = [
-        `https://wow.zamimg.com/images/wow/icons/large/${iconName}.jpg`,
         `https://render.worldofwarcraft.com/eu/icons/56/${iconName}.jpg`,
-        `https://render.worldofwarcraft.com/us/icons/56/${iconName}.jpg`
+        `https://render.worldofwarcraft.com/us/icons/56/${iconName}.jpg`,
+        `https://wow.zamimg.com/images/wow/icons/large/${iconName}.jpg`
       ];
       for (const imgUrl of candidateImageUrls) {
         const buf = await this.tryDownloadImageBytes(imgUrl);
-        if (buf) return buf;
+        if (buf) {
+          this.logger?.info?.(
+            `[IconFetcher] Resolved fileDataId=${fileDataId} via Stage 2 (Static CDN: ${imgUrl})`
+          );
+          return buf;
+        }
       }
     }
-    const wagoUrls = [
-      `https://wago.tools/api/casc/${fileDataId}?format=png`,
-      `https://wago.tools/api/casc/${fileDataId}`
-    ];
-    for (const wagoUrl of wagoUrls) {
-      const buf = await this.tryDownloadImageBytes(wagoUrl);
-      if (buf) return buf;
+    const wagoUrl = `https://wago.tools/api/casc/${fileDataId}?format=png`;
+    const wagoBuf = await this.tryDownloadImageBytes(wagoUrl);
+    if (wagoBuf) {
+      this.logger?.info?.(
+        `[IconFetcher] Resolved fileDataId=${fileDataId} via Stage 3 (Wago CASC)`
+      );
+      return wagoBuf;
     }
     const fallbackId = FALLBACK_FILEDATA_IDS[fileDataId];
     if (fallbackId && fallbackId !== fileDataId) {
@@ -17529,8 +18672,8 @@ var IconResolverAndRenderer = class {
   }
   async saveToDiskCache(diskPath, buf) {
     try {
-      await fs3.promises.mkdir(path5.dirname(diskPath), { recursive: true });
-      await fs3.promises.writeFile(diskPath, buf);
+      await fs4.promises.mkdir(path6.dirname(diskPath), { recursive: true });
+      await fs4.promises.writeFile(diskPath, buf);
     } catch {
     }
   }
@@ -18010,12 +19153,17 @@ function scanAndDecodeBgraBuffer(bgra, width, height, tolerance = 4) {
             if (Math.abs(pr0 - SYNC_HEADER_0.r) <= tolerance && Math.abs(pg0 - SYNC_HEADER_0.g) <= tolerance && Math.abs(pb0 - SYNC_HEADER_0.b) <= tolerance && Math.abs(pr1 - SYNC_HEADER_ROW1.r) <= tolerance && Math.abs(pg1 - SYNC_HEADER_ROW1.g) <= tolerance && Math.abs(pb1 - SYNC_HEADER_ROW1.b) <= tolerance) {
               for (let s = 1; s <= MAX_ACTION_SLOTS; s++) {
                 const slotEntry = slots[s - 1];
-                if (!slotEntry.hasAction || slotEntry.cooldown <= 0 && !slotEntry.onCooldown) {
+                if (!slotEntry.hasAction) {
                   slotEntry.cooldownProgress = 0;
                   continue;
                 }
                 const progOffsetA = progRowIdx0 + (2 + (s - 1) * 2) * 4;
                 const progOffsetB = progOffsetA + 4;
+                slotEntry.stacks = clampByte(bgra[progOffsetB + 1]);
+                if (slotEntry.cooldown <= 0 && !slotEntry.onCooldown) {
+                  slotEntry.cooldownProgress = 0;
+                  continue;
+                }
                 const pHigh = bgra[progOffsetA + 2];
                 const pLow = bgra[progOffsetA + 1];
                 const durByte = bgra[progOffsetA];
@@ -18043,8 +19191,8 @@ function scanAndDecodeBgraBuffer(bgra, width, height, tolerance = 4) {
 
 // src/win32-bridge.ts
 import { spawn } from "node:child_process";
-import * as fs4 from "node:fs";
-import * as path6 from "node:path";
+import * as fs5 from "node:fs";
+import * as path7 from "node:path";
 import * as readline from "node:readline";
 import { fileURLToPath } from "node:url";
 var Win32TelemetryBridge = class {
@@ -18057,15 +19205,15 @@ var Win32TelemetryBridge = class {
     if (customExePath) {
       this.helperExePath = customExePath;
     } else {
-      const currentDir = path6.dirname(fileURLToPath(import.meta.url));
-      const candidate1 = path6.join(currentDir, "wowdeck-helper.exe");
-      const candidate2 = path6.resolve(
+      const currentDir = path7.dirname(fileURLToPath(import.meta.url));
+      const candidate1 = path7.join(currentDir, "wowdeck-helper.exe");
+      const candidate2 = path7.resolve(
         process.cwd(),
         "com.behmen.wowdeck.sdPlugin",
         "bin",
         "wowdeck-helper.exe"
       );
-      this.helperExePath = fs4.existsSync(candidate1) ? candidate1 : candidate2;
+      this.helperExePath = fs5.existsSync(candidate1) ? candidate1 : candidate2;
     }
   }
   ensureProcessStarted() {
@@ -18112,12 +19260,12 @@ var Win32TelemetryBridge = class {
   }
   sendCommand(payload) {
     this.ensureProcessStarted();
-    return new Promise((resolve4, reject) => {
+    return new Promise((resolve5, reject) => {
       if (!this.helperProcess || !this.helperProcess.stdin.writable) {
-        resolve4({ ok: false, error: "Helper stdin not writable" });
+        resolve5({ ok: false, error: "Helper stdin not writable" });
         return;
       }
-      this.pendingQueue.push({ resolve: resolve4, reject });
+      this.pendingQueue.push({ resolve: resolve5, reject });
       this.helperProcess.stdin.write(JSON.stringify(payload) + "\n");
     });
   }
@@ -18137,6 +19285,20 @@ var Win32TelemetryBridge = class {
     const bgraBuffer = Buffer.from(res.bgraBase64, "base64");
     const match = scanAndDecodeBgraBuffer(bgraBuffer, res.width, res.height, 4);
     return match ? match.slots : null;
+  }
+  /**
+   * Queries the helper (Registry first, running WoW process fallback) for the WoW root folder.
+   */
+  async getWoWInstallInfo() {
+    const res = await this.sendCommand({ cmd: "getWowPath" });
+    if (!res.ok || !res.wowRoot) {
+      return null;
+    }
+    return {
+      wowRoot: res.wowRoot,
+      exePath: res.exePath,
+      source: res.source
+    };
   }
   /**
    * Triggers the hardware key combo for the dynamically assigned candidate pool index (1..174).
@@ -18188,13 +19350,17 @@ var WoWSlotAction = class extends (_a = SingletonAction) {
   lastPiSignature = "";
   constructor() {
     super();
-    const pluginDir = path7.resolve(
-      path7.dirname(fileURLToPath2(import.meta.url)),
+    const pluginDir = path8.resolve(
+      path8.dirname(fileURLToPath2(import.meta.url)),
       ".."
     );
-    const cacheDir = path7.join(pluginDir, "cache", "icons");
+    const cacheDir = path8.join(pluginDir, "cache", "icons");
     this.bridge = new Win32TelemetryBridge();
-    this.renderer = new IconResolverAndRenderer(cacheDir);
+    this.renderer = new IconResolverAndRenderer({
+      cacheDir,
+      resolveWowInstallInfo: () => this.bridge.getWoWInstallInfo(),
+      logger: plugin_default.logger
+    });
   }
   parseSlot(settings2) {
     const raw = settings2?.slot;
@@ -18321,7 +19487,7 @@ var WoWSlotAction = class extends (_a = SingletonAction) {
         if (!slotState) {
           continue;
         }
-        if (slotState.hasAction && slotState.fileDataId > 0 && !this.renderer.hasIconInMemory(slotState.fileDataId)) {
+        if (slotState.hasAction && slotState.fileDataId > 0 && this.renderer.canAttemptResolve(slotState.fileDataId)) {
           void this.renderer.resolveIconDataUri(slotState.fileDataId).then((uri) => {
             if (uri) {
               this.lastRenderSignatures.delete(actionItem.id);

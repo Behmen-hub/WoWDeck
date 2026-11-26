@@ -1,5 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { decodeBlp2ToPng, isBlp2Buffer } from "./blp-decoder.js";
+import { LocalCascReader, type WowInstallInfo } from "./casc-reader.js";
 import type { DecodedSlotTelemetry } from "./telemetry-decoder.js";
 
 /**
@@ -27,6 +29,36 @@ const FALLBACK_FILEDATA_IDS: Readonly<Record<number, number>> = Object.freeze({
 	457329: 132294, // PET_ACTION_MOVE_TO -> classic fallback
 });
 
+export const NEGATIVE_CACHE_TTL_MS = 60 * 60 * 1000; // 60 minutes
+export const CIRCUIT_BREAKER_COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes
+export const FETCH_TIMEOUT_MS = 5000;
+export const MIN_REQUEST_INTERVAL_MS = 300;
+
+export interface IconRendererLogger {
+	info?(message: string): void;
+	debug?(message: string): void;
+	warn(message: string): void;
+	error(message: string): void;
+}
+
+export interface CascIconSource {
+	readFileByDataId(fileDataId: number): Promise<Buffer | null>;
+}
+
+export interface IconRendererOptions {
+	cacheDir?: string;
+	iconMapPath?: string;
+	minRequestIntervalMs?: number;
+	fetchTimeoutMs?: number;
+	negativeCacheTtlMs?: number;
+	circuitBreakerCooldownMs?: number;
+	wowInstallPath?: string;
+	resolveWowInstallInfo?: () => Promise<WowInstallInfo | null>;
+	enableLocalCasc?: boolean;
+	cascReader?: CascIconSource | null;
+	logger?: IconRendererLogger;
+}
+
 export interface SlotCooldownTracker {
 	totalDurationSec: number;
 	totalDurationMs: number;
@@ -39,17 +71,93 @@ export class IconResolverAndRenderer {
 	private readonly cacheDir: string;
 	private readonly memoryCache = new Map<number, string>(); // fileDataId -> data URI
 	private readonly pendingFetches = new Map<number, Promise<string | null>>();
+	private readonly failedFetches = new Map<number, number>(); // fileDataId -> negative-cache expiry timestamp (ms)
+	private readonly blockedHosts = new Map<string, number>(); // hostname -> circuit-breaker expiry timestamp (ms)
+	private readonly iconNameMap: Readonly<Record<number, string>>;
+	private readonly minRequestIntervalMs: number;
+	private readonly fetchTimeoutMs: number;
+	private readonly negativeCacheTtlMs: number;
+	private readonly circuitBreakerCooldownMs: number;
+	private readonly cascReader: CascIconSource | null;
+	private readonly logger?: IconRendererLogger;
+	private requestQueueTail: Promise<void> = Promise.resolve();
+	private lastNetworkRequestEndMs = 0;
 	private readonly slotMaxCooldown = new Map<number, number>(); // slot -> max observed cooldown seconds
 	private readonly slotCooldownTrackers = new Map<number, SlotCooldownTracker>(); // slot -> sub-second millisecond tracker
 
-	constructor(cacheDir?: string) {
+	constructor(cacheDirOrOptions?: string | IconRendererOptions) {
+		const opts: IconRendererOptions =
+			typeof cacheDirOrOptions === "string" ? { cacheDir: cacheDirOrOptions } : (cacheDirOrOptions ?? {});
 		this.cacheDir =
-			cacheDir ?? path.resolve(process.cwd(), "cache", "icons");
+			opts.cacheDir ?? path.resolve(process.cwd(), "cache", "icons");
+		this.minRequestIntervalMs = opts.minRequestIntervalMs ?? MIN_REQUEST_INTERVAL_MS;
+		this.fetchTimeoutMs = opts.fetchTimeoutMs ?? FETCH_TIMEOUT_MS;
+		this.negativeCacheTtlMs = opts.negativeCacheTtlMs ?? NEGATIVE_CACHE_TTL_MS;
+		this.circuitBreakerCooldownMs = opts.circuitBreakerCooldownMs ?? CIRCUIT_BREAKER_COOLDOWN_MS;
+		this.logger = opts.logger;
+		if (opts.cascReader !== undefined) {
+			this.cascReader = opts.cascReader;
+		} else if (opts.enableLocalCasc === false) {
+			this.cascReader = null;
+		} else {
+			this.cascReader = new LocalCascReader({
+				wowInstallPath: opts.wowInstallPath,
+				resolveWowInstallInfo: opts.resolveWowInstallInfo,
+				logger: opts.logger,
+			});
+		}
+		this.iconNameMap = this.loadIconNameMap(opts.iconMapPath);
 		try {
 			fs.mkdirSync(this.cacheDir, { recursive: true });
 		} catch {
 			// Ignore directory creation errors in restricted environments
 		}
+	}
+
+	private loadIconNameMap(customPath?: string): Readonly<Record<number, string>> {
+		const merged: Record<number, string> = { ...KNOWN_ICON_NAMES };
+		const candidatePaths = customPath
+			? [customPath]
+			: [
+					path.resolve(this.cacheDir, "..", "..", "assets", "icon-map.json"),
+					path.resolve(process.cwd(), "assets", "icon-map.json"),
+					path.resolve(this.cacheDir, "..", "..", "icon-map.json"),
+					path.resolve(process.cwd(), "icon-map.json"),
+				];
+
+		let loadedFromPath: string | null = null;
+		let loadedCount = 0;
+
+		for (const mapPath of candidatePaths) {
+			try {
+				if (!fs.existsSync(mapPath)) continue;
+				const parsed = JSON.parse(fs.readFileSync(mapPath, "utf8")) as Record<string, unknown>;
+				for (const [key, value] of Object.entries(parsed)) {
+					const numericId = Number(key);
+					if (Number.isFinite(numericId) && numericId > 0 && typeof value === "string" && value.trim()) {
+						merged[numericId] = value.trim().toLowerCase();
+						loadedCount++;
+					}
+				}
+				loadedFromPath = mapPath;
+				break;
+			} catch {
+				// Ignore unreadable/malformed optional icon-map.json
+			}
+		}
+
+		if (loadedFromPath) {
+			const msg = `[IconFetcher] Loaded ${loadedCount} icon mappings from ${loadedFromPath}`;
+			if (this.logger?.info) {
+				this.logger.info(msg);
+			}
+		} else {
+			this.logger?.warn(
+				`[IconFetcher] No external icon-map.json found; using ${Object.keys(KNOWN_ICON_NAMES).length} built-in mappings`,
+			);
+		}
+
+		return Object.freeze(merged);
 	}
 
 	public getCacheFilePath(fileDataId: number): string {
@@ -60,9 +168,44 @@ export class IconResolverAndRenderer {
 		return this.memoryCache.has(fileDataId);
 	}
 
+	public isNegativelyCached(fileDataId: number): boolean {
+		const expiresAt = this.failedFetches.get(fileDataId);
+		if (expiresAt === undefined) {
+			return false;
+		}
+		if (Date.now() >= expiresAt) {
+			this.failedFetches.delete(fileDataId);
+			return false;
+		}
+		return true;
+	}
+
+	public isHostBlocked(host: string): boolean {
+		const normalized = host.toLowerCase();
+		const blockedUntil = this.blockedHosts.get(normalized);
+		if (blockedUntil === undefined) {
+			return false;
+		}
+		if (Date.now() >= blockedUntil) {
+			this.blockedHosts.delete(normalized);
+			return false;
+		}
+		return true;
+	}
+
+	public canAttemptResolve(fileDataId: number): boolean {
+		if (!fileDataId || fileDataId <= 0) {
+			return false;
+		}
+		if (this.memoryCache.has(fileDataId) || this.pendingFetches.has(fileDataId)) {
+			return false;
+		}
+		return !this.isNegativelyCached(fileDataId);
+	}
+
 	/**
 	 * Resolves a FileDataID to a Base64 image data URI, reading from disk cache
-	 * `/cache/icons/{fileDataId}.png` or downloading from Wowhead / Blizzard Render / Wago CDN.
+	 * `/cache/icons/{fileDataId}.png` or downloading from static CDNs / Wago Tools CASC API.
 	 */
 	public async resolveIconDataUri(fileDataId: number): Promise<string | null> {
 		if (!fileDataId || fileDataId <= 0) {
@@ -72,6 +215,10 @@ export class IconResolverAndRenderer {
 		const mem = this.memoryCache.get(fileDataId);
 		if (mem) {
 			return mem;
+		}
+
+		if (this.isNegativelyCached(fileDataId)) {
+			return null;
 		}
 
 		const diskPath = this.getCacheFilePath(fileDataId);
@@ -94,11 +241,48 @@ export class IconResolverAndRenderer {
 			return existingPromise;
 		}
 
-		const fetchPromise = this.fetchAndCacheRemoteIcon(fileDataId, diskPath).finally(() => {
-			this.pendingFetches.delete(fileDataId);
-		});
+		const fetchPromise = this.fetchAndCacheRemoteIcon(fileDataId, diskPath)
+			.then((dataUri) => {
+				if (dataUri) {
+					this.failedFetches.delete(fileDataId);
+				} else {
+					this.recordNegativeCache(fileDataId);
+				}
+				return dataUri;
+			})
+			.catch(() => {
+				this.recordNegativeCache(fileDataId);
+				return null;
+			})
+			.finally(() => {
+				this.pendingFetches.delete(fileDataId);
+			});
 		this.pendingFetches.set(fileDataId, fetchPromise);
 		return fetchPromise;
+	}
+
+	private recordNegativeCache(fileDataId: number): void {
+		const ttlMinutes = Math.round(this.negativeCacheTtlMs / 60000);
+		this.failedFetches.set(fileDataId, Date.now() + this.negativeCacheTtlMs);
+		this.logger?.warn(
+			`[IconFetcher] Negative-caching fileDataId=${fileDataId} for ${ttlMinutes}m after all sources failed`,
+		);
+	}
+
+	private formatError(err: unknown): string {
+		if (err instanceof Error) {
+			const base = `${err.name}:${err.message}`;
+			const errWithCause = err as Error & { cause?: unknown };
+			if (errWithCause.cause !== undefined) {
+				const causeStr =
+					errWithCause.cause instanceof Error
+						? `${errWithCause.cause.name}:${errWithCause.cause.message}`
+						: String(errWithCause.cause);
+				return `${base} (cause: ${causeStr})`;
+			}
+			return base;
+		}
+		return String(err);
 	}
 
 	private detectMimeType(buf: Buffer): string {
@@ -111,23 +295,94 @@ export class IconResolverAndRenderer {
 		return "image/png";
 	}
 
-	private async tryDownloadImageBytes(url: string): Promise<Buffer | null> {
-		try {
-			const res = await fetch(url, {
-				headers: {
-					"User-Agent": "WoWDeck-StreamDeck-Plugin/1.1",
-				},
-			});
-			if (!res.ok) return null;
-			const arrayBuf = await res.arrayBuffer();
-			const buf = Buffer.from(arrayBuf);
-			if (buf.length > 64 && this.IsValidImageBuffer(buf)) {
-				return buf;
+	private enqueueNetworkRequest<T>(task: () => Promise<T>): Promise<T> {
+		const run = async (): Promise<T> => {
+			if (this.minRequestIntervalMs > 0 && this.lastNetworkRequestEndMs > 0) {
+				const elapsed = Date.now() - this.lastNetworkRequestEndMs;
+				const remaining = this.minRequestIntervalMs - elapsed;
+				if (remaining > 0) {
+					await new Promise((resolve) => setTimeout(resolve, remaining));
+				}
 			}
+			try {
+				return await task();
+			} finally {
+				this.lastNetworkRequestEndMs = Date.now();
+			}
+		};
+
+		const resultPromise = this.requestQueueTail.then(run, run);
+		this.requestQueueTail = resultPromise.then(
+			() => undefined,
+			() => undefined,
+		);
+		return resultPromise;
+	}
+
+	private async tryDownloadImageBytes(url: string): Promise<Buffer | null> {
+		let hostname: string;
+		try {
+			hostname = new URL(url).hostname.toLowerCase();
 		} catch {
-			// Ignore network errors
+			return null;
 		}
-		return null;
+
+		if (this.isHostBlocked(hostname)) {
+			return null;
+		}
+
+		return this.enqueueNetworkRequest(async () => {
+			if (this.isHostBlocked(hostname)) {
+				return null;
+			}
+			try {
+				const res = await fetch(url, {
+					headers: {
+						Accept: "image/png,image/jpeg,image/*;q=0.8",
+					},
+					signal: AbortSignal.timeout(this.fetchTimeoutMs),
+				});
+				const contentType = res.headers.get("content-type") ?? "none";
+				if (res.status === 403 || res.status === 429 || res.status === 503) {
+					const cooldownMinutes = Math.round(this.circuitBreakerCooldownMs / 60000);
+					this.blockedHosts.set(hostname, Date.now() + this.circuitBreakerCooldownMs);
+					this.logger?.warn(
+						`[IconFetcher] Circuit breaker triggered host=${hostname} url=${url} status=${res.status} content-type=${contentType} cooldown=${cooldownMinutes}m`,
+					);
+					return null;
+				}
+				if (!res.ok) {
+					this.logger?.warn(
+						`[IconFetcher] HTTP error url=${url} status=${res.status} content-type=${contentType}`,
+					);
+					return null;
+				}
+				const arrayBuf = await res.arrayBuffer();
+				const buf = Buffer.from(arrayBuf);
+				if (buf.length > 64 && this.IsValidImageBuffer(buf)) {
+					return buf;
+				}
+				if (isBlp2Buffer(buf)) {
+					const converted = decodeBlp2ToPng(buf);
+					if (converted) {
+						return converted;
+					}
+					this.logger?.warn(
+						`[IconFetcher] BLP2 decode failed url=${url} status=${res.status} content-type=${contentType} length=${buf.length}`,
+					);
+					return null;
+				}
+				const hexPrefix = buf.subarray(0, 8).toString("hex");
+				this.logger?.warn(
+					`[IconFetcher] Invalid image buffer url=${url} status=${res.status} content-type=${contentType} length=${buf.length} hex=${hexPrefix}`,
+				);
+			} catch (err) {
+				this.logger?.error(
+					`[IconFetcher] Fetch failed url=${url} error=${this.formatError(err)}`,
+				);
+			}
+			return null;
+		});
 	}
 
 	private IsValidImageBuffer(buf: Buffer): boolean {
@@ -146,61 +401,68 @@ export class IconResolverAndRenderer {
 		return isPng || isJpg;
 	}
 
-	private async resolveIconNameFromWowhead(fileDataId: number): Promise<string | null> {
-		const known = KNOWN_ICON_NAMES[fileDataId];
-		if (known) return known;
-
-		const urls = [
-			`https://www.wowhead.com/icon=${fileDataId}`,
-			`https://www.wowhead.com/classic/icon=${fileDataId}`,
-		];
-
-		for (const pageUrl of urls) {
+	private async fetchBufferForFileDataId(fileDataId: number): Promise<Buffer | null> {
+		// Stage 1: Local Read-Only WoW CASC archive (100% offline, primary)
+		if (this.cascReader) {
 			try {
-				const res = await fetch(pageUrl, {
-					headers: {
-						"User-Agent": "WoWDeck-StreamDeck-Plugin/1.1",
-					},
-				});
-				if (!res.ok) continue;
-				const html = await res.text();
-				const match = html.match(
-					/https:\/\/wow\.zamimg\.com\/images\/wow\/icons\/large\/([^"'\s>/.]+)\.(?:jpg|png)/i,
-				);
-				if (match && match[1]) {
-					return match[1].toLowerCase();
+				const rawCasc = await this.cascReader.readFileByDataId(fileDataId);
+				if (rawCasc) {
+					if (isBlp2Buffer(rawCasc)) {
+						const decodedPng = decodeBlp2ToPng(rawCasc);
+						if (decodedPng) {
+							this.logger?.info?.(
+								`[IconFetcher] Resolved fileDataId=${fileDataId} via Stage 1 (Local CASC BLP2->PNG)`,
+							);
+							return decodedPng;
+						}
+						this.logger?.warn(
+							`[IconFetcher] Stage 1 BLP2 decode failed for fileDataId=${fileDataId}; falling back to Stage 2`,
+						);
+					} else if (rawCasc.length > 64 && this.IsValidImageBuffer(rawCasc)) {
+						this.logger?.info?.(
+							`[IconFetcher] Resolved fileDataId=${fileDataId} via Stage 1 (Local CASC image)`,
+						);
+						return rawCasc;
+					} else {
+						this.logger?.warn(
+							`[IconFetcher] Stage 1 returned unsupported buffer for fileDataId=${fileDataId} (len=${rawCasc.length}); falling back to Stage 2`,
+						);
+					}
 				}
-			} catch {
-				// Continue to next URL
+			} catch (err) {
+				this.logger?.warn(
+					`[IconFetcher] Stage 1 failed for fileDataId=${fileDataId} (${this.formatError(err)}); falling back to Stage 2`,
+				);
 			}
 		}
 
-		return null;
-	}
-
-	private async fetchBufferForFileDataId(fileDataId: number): Promise<Buffer | null> {
-		// 1. Resolve icon name (via built-in table or Wowhead icon page) and download from Zamimg / Blizzard Render CDN
-		const iconName = await this.resolveIconNameFromWowhead(fileDataId);
+		// Stage 2: Resolve icon name from bundled icon-map.json / built-in map -> Blizzard Render / Zamimg CDN
+		const iconName = this.iconNameMap[fileDataId];
 		if (iconName) {
 			const candidateImageUrls = [
-				`https://wow.zamimg.com/images/wow/icons/large/${iconName}.jpg`,
 				`https://render.worldofwarcraft.com/eu/icons/56/${iconName}.jpg`,
 				`https://render.worldofwarcraft.com/us/icons/56/${iconName}.jpg`,
+				`https://wow.zamimg.com/images/wow/icons/large/${iconName}.jpg`,
 			];
 			for (const imgUrl of candidateImageUrls) {
 				const buf = await this.tryDownloadImageBytes(imgUrl);
-				if (buf) return buf;
+				if (buf) {
+					this.logger?.info?.(
+						`[IconFetcher] Resolved fileDataId=${fileDataId} via Stage 2 (Static CDN: ${imgUrl})`,
+					);
+					return buf;
+				}
 			}
 		}
 
-		// 2. Fallback: Wago Tools CASC API
-		const wagoUrls = [
-			`https://wago.tools/api/casc/${fileDataId}?format=png`,
-			`https://wago.tools/api/casc/${fileDataId}`,
-		];
-		for (const wagoUrl of wagoUrls) {
-			const buf = await this.tryDownloadImageBytes(wagoUrl);
-			if (buf) return buf;
+		// Stage 3: Last fallback via Wago Tools CASC API (supports PNG & raw BLP2 auto-conversion)
+		const wagoUrl = `https://wago.tools/api/casc/${fileDataId}?format=png`;
+		const wagoBuf = await this.tryDownloadImageBytes(wagoUrl);
+		if (wagoBuf) {
+			this.logger?.info?.(
+				`[IconFetcher] Resolved fileDataId=${fileDataId} via Stage 3 (Wago CASC)`,
+			);
+			return wagoBuf;
 		}
 
 		// 3. Fallback FileDataID if defined (e.g. 524348 -> 132270)

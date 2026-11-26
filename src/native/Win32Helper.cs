@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
+using Microsoft.Win32;
 
 namespace WoWDeckNative
 {
@@ -77,6 +79,20 @@ namespace WoWDeckNative
 
         [DllImport("user32.dll")]
         private static extern uint MapVirtualKey(uint uCode, uint uMapType);
+
+        [DllImport("user32.dll")]
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern IntPtr OpenProcess(uint dwDesiredAccess, bool bInheritHandle, uint dwProcessId);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        private static extern bool QueryFullProcessImageName(IntPtr hProcess, uint dwFlags, StringBuilder lpExeName, ref int lpdwSize);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool CloseHandle(IntPtr hObject);
+
+        private const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
 
         private const int SRCCOPY = 0x00CC0020;
         private const uint DIB_RGB_COLORS = 0;
@@ -334,6 +350,10 @@ namespace WoWDeckNative
                     {
                         Console.WriteLine("{\"ok\":true,\"pong\":true}");
                     }
+                    else if (line.Contains("\"getWowPath\""))
+                    {
+                        HandleGetWowPath();
+                    }
                     else if (line.Contains("\"exit\""))
                     {
                         break;
@@ -349,6 +369,168 @@ namespace WoWDeckNative
                     Console.WriteLine("{\"ok\":false,\"error\":\"" + safeMsg + "\"}");
                 }
             }
+        }
+
+        private static string EscapeJsonString(string value)
+        {
+            if (value == null) return "";
+            return value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+        }
+
+        private static string NormalizeWowRoot(string rawPath)
+        {
+            if (string.IsNullOrEmpty(rawPath)) return null;
+            string current = rawPath.Trim().Trim('"');
+            try
+            {
+                if (File.Exists(current))
+                {
+                    current = Path.GetDirectoryName(current);
+                }
+                for (int depth = 0; depth < 3 && !string.IsNullOrEmpty(current); depth++)
+                {
+                    if (File.Exists(Path.Combine(current, ".build.info")) && Directory.Exists(Path.Combine(current, "Data")))
+                    {
+                        return current;
+                    }
+                    DirectoryInfo parent = Directory.GetParent(current);
+                    current = parent != null ? parent.FullName : null;
+                }
+            }
+            catch
+            {
+            }
+            return null;
+        }
+
+        private static string ReadInstallPathFromRegistry()
+        {
+            string[] keysAndValues = new string[]
+            {
+                @"SOFTWARE\WOW6432Node\Blizzard Entertainment\World of Warcraft|InstallPath",
+                @"SOFTWARE\Blizzard Entertainment\World of Warcraft|InstallPath",
+                @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\World of Warcraft|InstallLocation",
+                @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\World of Warcraft|InstallLocation",
+                @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\World of Warcraft Classic Era|InstallLocation",
+                @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Cataclysm Classic|InstallLocation",
+                @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\World of Warcraft Classic Anniversary|InstallLocation"
+            };
+
+            foreach (string entry in keysAndValues)
+            {
+                string[] parts = entry.Split('|');
+                try
+                {
+                    using (RegistryKey key = Registry.LocalMachine.OpenSubKey(parts[0], false))
+                    {
+                        if (key != null)
+                        {
+                            object val = key.GetValue(parts[1]);
+                            if (val != null)
+                            {
+                                string normalized = NormalizeWowRoot(val.ToString());
+                                if (!string.IsNullOrEmpty(normalized))
+                                {
+                                    return normalized;
+                                }
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                }
+            }
+            return null;
+        }
+
+        private static string QueryProcessExePathByPid(uint pid)
+        {
+            if (pid == 0) return null;
+
+            IntPtr hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
+            if (hProcess == IntPtr.Zero) return null;
+            try
+            {
+                StringBuilder sb = new StringBuilder(1024);
+                int size = sb.Capacity;
+                if (QueryFullProcessImageName(hProcess, 0, sb, ref size))
+                {
+                    return sb.ToString();
+                }
+            }
+            finally
+            {
+                CloseHandle(hProcess);
+            }
+            return null;
+        }
+
+        private static string FindRunningWoWExePath()
+        {
+            IntPtr hwnd = FindWindow("GxWindowClass", null);
+            if (hwnd == IntPtr.Zero)
+            {
+                hwnd = FindWindow(null, "World of Warcraft");
+            }
+            if (hwnd != IntPtr.Zero)
+            {
+                uint pid = 0;
+                GetWindowThreadProcessId(hwnd, out pid);
+                string byHwnd = QueryProcessExePathByPid(pid);
+                if (!string.IsNullOrEmpty(byHwnd))
+                {
+                    return byHwnd;
+                }
+            }
+
+            try
+            {
+                string[] procNames = new string[] { "Wow", "WowClassic", "WowForever", "Wow-64", "WowB", "WowT" };
+                foreach (string name in procNames)
+                {
+                    Process[] procs = Process.GetProcessesByName(name);
+                    foreach (Process p in procs)
+                    {
+                        string exe = QueryProcessExePathByPid((uint)p.Id);
+                        if (!string.IsNullOrEmpty(exe))
+                        {
+                            return exe;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+            }
+
+            return null;
+        }
+
+        private static void HandleGetWowPath()
+        {
+            string regRoot = ReadInstallPathFromRegistry();
+            if (!string.IsNullOrEmpty(regRoot))
+            {
+                Console.WriteLine("{\"ok\":true,\"wowRoot\":\"" + EscapeJsonString(regRoot) + "\",\"source\":\"registry\"}");
+                return;
+            }
+
+            string exePath = FindRunningWoWExePath();
+            if (!string.IsNullOrEmpty(exePath))
+            {
+                string procRoot = NormalizeWowRoot(exePath);
+                if (!string.IsNullOrEmpty(procRoot))
+                {
+                    Console.WriteLine(
+                        "{\"ok\":true,\"wowRoot\":\"" + EscapeJsonString(procRoot) +
+                        "\",\"exePath\":\"" + EscapeJsonString(exePath) +
+                        "\",\"source\":\"process\"}");
+                    return;
+                }
+            }
+
+            Console.WriteLine("{\"ok\":false,\"error\":\"WoW install path not found\"}");
         }
 
         private static IntPtr FindWoWWindow()

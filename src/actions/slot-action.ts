@@ -50,7 +50,11 @@ export class WoWSlotAction extends SingletonAction<SlotActionSettings> {
 		);
 		const cacheDir = path.join(pluginDir, "cache", "icons");
 		this.bridge = new Win32TelemetryBridge();
-		this.renderer = new IconResolverAndRenderer(cacheDir);
+		this.renderer = new IconResolverAndRenderer({
+			cacheDir,
+			resolveWowInstallInfo: () => this.bridge.getWoWInstallInfo(),
+			logger: streamDeck.logger,
+		});
 	}
 
 	private parseSlot(settings: SlotActionSettings | undefined): number {
@@ -233,7 +237,7 @@ export class WoWSlotAction extends SingletonAction<SlotActionSettings> {
 				if (
 					slotState.hasAction &&
 					slotState.fileDataId > 0 &&
-					!this.renderer.hasIconInMemory(slotState.fileDataId)
+					this.renderer.canAttemptResolve(slotState.fileDataId)
 				) {
 					void this.renderer
 						.resolveIconDataUri(slotState.fileDataId)
