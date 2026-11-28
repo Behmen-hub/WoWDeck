@@ -1,13 +1,13 @@
 # WoWDeck (Stream Deck Plugin + WoW Addon)
 
-**Author:** Behmen | **Current Release:** `v1.0.4` (Addons `v1.0.3` / Plugin `v1.0.4`) | **Target Clients:** World of Warcraft: Classic Forever (Build `16001`) & World of Warcraft: Retail (`11.x / 12.x`)
+**Author:** Behmen | **Current Release:** `v1.0.5` (Addons `v1.0.3` / Plugin `v1.0.5`) | **Target Clients:** World of Warcraft: Classic Forever (Build `16001`) & World of Warcraft: Retail (`11.x / 12.x`)
 
 **WoWDeck** verbindet **World of Warcraft** in Echtzeit mit deinem **Elgato Stream Deck**. Es überträgt Aktionsleisten, Icons (offline direkt aus den lokalen WoW-CASC-Archiven), Cooldowns (inkl. originalem Radial-Sweep), Reichweiten- und Mana-Status sowie Stapelzahlen (`0–255`) ohne manuelle Tastenkonfiguration direkt auf die Tasten deines Stream Decks.
 
 *Aktuell unterstützte Versionen: **WoW: Classic Forever (Build `16001`)** (`WoWDeckBridgeForever`) & **WoW: Retail (`11.x / 12.x`)** (`WoWDeckBridgeRetail`).*
 
 > **Wichtig – Beide Komponenten erforderlich:**
-> 1. **Elgato Stream Deck Plugin** (`com.behmen.wowdeck_v1.0.4.streamDeckPlugin`) – [GitHub Releases](https://github.com/Behmen-hub/WoWDeck/releases/latest)
+> 1. **Elgato Stream Deck Plugin** (`com.behmen.wowdeck_v1.0.5.streamDeckPlugin`) – [GitHub Releases](https://github.com/Behmen-hub/WoWDeck/releases/latest)
 > 2. **WoW Ingame-Addon** (`WoWDeckBridgeForever_v1.0.3.zip` für Classic Forever oder `WoWDeckBridgeRetail_v1.0.3.zip` für Retail) – [CurseForge](https://www.curseforge.com/wow/addons/wowdeckbridge) oder [GitHub Releases](https://github.com/Behmen-hub/WoWDeck/releases/latest)
 
 ---
@@ -50,7 +50,7 @@
    * **Retail:** `WoWDeckBridgeRetail_v1.0.3.zip` → Entpacke nach `...\World of Warcraft\_retail_\Interface\AddOns\WoWDeckBridgeRetail`
 
 ### Schritt 2: Stream Deck Plugin installieren (`com.behmen.wowdeck`)
-1. Lade `com.behmen.wowdeck_v1.0.4.streamDeckPlugin` aus den [GitHub Releases](https://github.com/Behmen-hub/WoWDeck/releases/latest) herunter (funktioniert für Forever und Retail gleichermaßen).
+1. Lade `com.behmen.wowdeck_v1.0.5.streamDeckPlugin` aus den [GitHub Releases](https://github.com/Behmen-hub/WoWDeck/releases/latest) herunter (funktioniert für Forever und Retail gleichermaßen).
 2. Doppelklicke auf die Datei – die Elgato Stream Deck Software installiert das Plugin automatisch.
 3. Ziehe die Aktion **"WoW Action Slot"** aus der Kategorie **WoWDeck** auf eine Taste und wähle Leiste + Slot (`1–116`).
 
@@ -80,6 +80,8 @@ Das Stream Deck Plugin nutzt im Hintergrund einen leichtgewichtigen, nativen Win
 ---
 
 ## Changelog
+* **v1.0.5** *(Plugin-only Update | Addons v1.0.3 | Plugin v1.0.5 | Git v1.0.5)*
+  * **Elgato Marketplace Icons:** Rein weiße (`#FFFFFF`), transparente Kategorie- und Action-Icons für die Stream-Deck-Seitenleiste (`category-icon.png` / `@2x`, `icon.png` / `@2x`).
 * **v1.0.4** *(Addons v1.0.3 | Plugin v1.0.4 | Git v1.0.4)*
   * **3-Stufen-Offline-Icon-Architektur (`LocalCascReader` + Pure-TS `blp-decoder.ts` + `assets/icon-map.json`):** Liest Icons per `FileDataID` primär 100 % offline & read-only aus dem lokalen WoW-CASC-Archiv (Zero-Config über Registry & laufenden WoW-Prozess), mit Fallback auf 33.898 gebündelte Icon-Mappings (`render.worldofwarcraft.com` / `wow.zamimg.com`) sowie `wago.tools` + BLP2-Konvertierung.
   * **Netzwerkschutz & Diagnose:** Entferntes Wowhead-Scraping, Negative-Cache (`60m`), Host-Circuit-Breaker (`30m`), serielle Queue (`300ms`) und `streamDeck.logger`-Fehlerdiagnose.
@@ -106,5 +108,5 @@ Das Stream Deck Plugin nutzt im Hintergrund einen leichtgewichtigen, nativen Win
 ### Installation & Display Requirements (Both Components Required)
 1. **WoW Addon (`WoWDeckBridgeForever` / `WoWDeckBridgeRetail`):** Download via [CurseForge](https://www.curseforge.com/wow/addons/wowdeckbridge) or [GitHub Releases](https://github.com/Behmen-hub/WoWDeck/releases/latest) and extract `WoWDeckBridgeForever` to `_forever_\Interface\AddOns\WoWDeckBridgeForever` (for Classic Forever) or `WoWDeckBridgeRetail` to `_retail_\Interface\AddOns\WoWDeckBridgeRetail` (for Retail).
    * **Display Requirements:** Must run in **Fullscreen** or **Windowed (Maximized) / Borderless** mode at your monitor's **native 1:1 resolution (`100%` Render Scale)**. Classic floating windowed mode and non-native render scaling are not supported. Ensure no third-party overlays cover the top-left `(0,0)` corner.
-2. **Stream Deck Plugin (`com.behmen.wowdeck_v1.0.4.streamDeckPlugin`):** Download from [GitHub Releases](https://github.com/Behmen-hub/WoWDeck/releases/latest) (do not download the raw source repository) and double-click to install into the Elgato Stream Deck software. Works for both Classic Forever and Retail.
+2. **Stream Deck Plugin (`com.behmen.wowdeck_v1.0.5.streamDeckPlugin`):** Download from [GitHub Releases](https://github.com/Behmen-hub/WoWDeck/releases/latest) (do not download the raw source repository) and double-click to install into the Elgato Stream Deck software. Works for both Classic Forever and Retail.
 3. **Windows SmartScreen Note:** The plugin uses a lightweight C# GDI screen-reader and keystroke helper. Because it is not commercially code-signed, Windows SmartScreen may prompt a warning on first launch. The entire source code (`src/`) is publicly available in this repository.
